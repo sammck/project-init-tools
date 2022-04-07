@@ -1,0 +1,14 @@
+{
+  "python.defaultInterpreterPath": "${workspaceFolder}/.venv/bin/python",
+  "python.envFile": "${workspaceFolder}/.env",
+  "python.testing.unittestEnabled": false,
+  "python.testing.pytestEnabled": true,
+  "[python]": {
+        "editor.insertSpaces": true,
+        "editor.tabSize": 2  
+      },   
+    "files.exclude": {
+      "/trash": true
+    },
+    "esbonio.server.enabled": true
+}
