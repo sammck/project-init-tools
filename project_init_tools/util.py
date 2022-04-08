@@ -227,18 +227,21 @@ def get_git_user_email(cwd: Optional[str]=None) -> str:
 
 def get_git_user_friendly_name(cwd: Optional[str]=None) -> str:
   """Gets the friendly name associated with the local git installation"""
-  return get_git_config_value('user.email', cwd=cwd)
+  return get_git_config_value('user.name', cwd=cwd)
 
-def get_git_root_dir(starting_dir: str=".") -> Optional[str]:
+def get_git_root_dir(starting_dir: Optional[str]=None) -> Optional[str]:
   """Find the root directory of the current git project
 
   Args:
-      starting_dir (str, optional): The subdir in which to begin the search. Defaults to ".".
+      starting_dir (str, optional): The subdir in which to begin the search.
+                      If None, "." is used. Defaults to None.
 
   Returns:
-      Optional[str]: The absolute pathname of the top-level git project directory, or
-                     None if starting_dir is not in a git project.
+      Optional[str]:  The absolute pathname of the top-level git project directory, or
+                      None if starting_dir is not in a git project.
   """
+  if starting_dir is None:
+    starting_dir = '.'
   starting_dir = os.path.abspath(starting_dir)
   rel_root_dir: Optional[str] = None
   try:
@@ -338,6 +341,141 @@ def multiline_indent(
     result.append(line)
   return '\n'.join(result)
 
+def _detab(s: str, tab_width: int=4, ip: int=0) -> str:
+  """Converts tabs to spaces in a potentially multiline string.
+
+  Makes an attempt to be efficient by scanning rather than processing
+  one character at a time. If the string has no tabs it is quickly
+  returned without modification.
+
+  Args:
+      s (str): A potentially multiline string
+      tab_width (int, optional): The tab width. Defaults to 4.
+      ip (int, optional): The 0-based initial column position. Defaults to 0.
+
+  Returns:
+      str: The same string with all tabs converted to spaces.
+  """
+  result = ""
+  next_tab: int = s.find('\t')
+  if next_tab < 0:
+    # string has no tabs
+    return s
+  # find the first newline, if any. We have to find
+  # all newlines up to the last tab, to reset the
+  # character column number.
+  next_newline: int = s.find('\n')
+  ic = 0  # character index into the string
+  while ic < len(s):
+    if next_newline >= 0 and next_newline < next_tab:
+      # There are more tabs, but a newline appears before the next tab
+      assert next_newline >= ic
+      result += s[ic:next_newline+1]   # take all chars up to the next newline
+      ic = next_newline+1
+      ip = 0  # reset the column number to 0--start of a new line
+      # Find the next newline, if any
+      next_newline = s.find('\n', ic)
+    else:
+      # there is a tab before the next newline
+      assert next_tab >= ic
+      result += s[ic:next_tab]  # take all chars up to the tab
+      ip += next_tab - ic
+
+      ns = tab_width - (ip % tab_width)  # compute number of spaces modulo tab with
+
+      # append the correct number of spaces
+      result += ' '*ns
+      ip += ns
+      ic = next_tab+1
+
+      # find the next tab, if any
+      next_tab: int = s.find('\t', ic)
+
+      # if there are no more tabs, append the remainder of the string and exit
+      if next_tab < 0:
+        result += s[ic:]
+        break
+  return result
+
+def dedent(
+      s: str,
+      min_indent: int=0,
+      strip_empty_first_line: bool=True,
+      ignore_first_line: bool=True,
+      strip_trailing_whitespace: bool=True,
+      force_end_with_newline: bool=False,
+      tab_width: int=4
+    ) -> str:
+  """Removes as much indentation from a multiline string as possible without affecting
+     relative indentation. In the process, detabs the string (before unindenting).
+
+  Args:
+      s (str):    A multiline string to be unindented.
+      min_indent (int, optional):
+                  The amount of indentation to add back in after removing
+                  as much as possible. Defaults to 0.
+      strip_empty_first_line (bool, optional):
+                  If True, and the first line is empty, remove it. Useful for
+                  multiline quoted blocks in code. Defaults to True.
+      ignore_first_line (bool, optional):
+                  If True, the first line will not be considered for the purposes of
+                  determining how much indentation to remove. Useful for
+                  multiline quoted blocks in code. Defaults to True.
+      strip_trailing_whitespace (bool, optional):
+                  If True, trailing whitespace on each line will be removed. Defaults to True.
+      force_end_with_newline (bool, optional):
+                  If True, the result will always end with a newline unless it is the empty string.
+                  Defaults to False.
+      tab_width (int, optional):
+                  The tab width, for detabbing. Defaults to 4.
+
+  Returns:
+      str: A detabbed and unindented string
+  """
+
+  if s == '':
+    return s
+  s = _detab(s, tab_width=tab_width)
+
+  lines = s.split('\n')
+  if strip_empty_first_line and (lines[0] == '' or strip_trailing_whitespace and lines[0].rstrip() == ''):
+    lines = lines[1:]
+    ignore_first_line = False
+
+  if len(lines) == 0:
+    return ''
+
+  min_existing_indent: Optional[int] = None
+  bare_lines: List[Tuple[Optional[int], str]] = []
+  for i, line in enumerate(lines):
+    rstrip_line = line.rstrip()
+    is_whitespace_line = rstrip_line == ''
+    if strip_trailing_whitespace:
+      line = rstrip_line
+    line_tail = line if is_whitespace_line else line.lstrip()
+    existing_indent = None if is_whitespace_line else len(line)-len(line_tail)
+    if not existing_indent is None and (i > 0 or not ignore_first_line) and (
+          min_existing_indent is None or existing_indent < min_existing_indent):
+      min_existing_indent = existing_indent
+    bare_lines.append((existing_indent, line_tail))
+  if min_existing_indent is None:
+    min_existing_indent = 0
+
+  for i, bare_line in enumerate(bare_lines):
+    existing_indent, line = bare_line
+    if line != '':
+      if existing_indent is None:
+        existing_indent = len(line)
+      ns = max(0, existing_indent - min_existing_indent)
+      line = ' '*ns + line
+      lines[i] = line
+    lines[i] = line
+
+  if force_end_with_newline and lines[-1] != '':
+    lines.append('')
+  
+  return '\n'.join(lines)
+  
 def gen_etc_shadow_password_hash(password: str) -> str:
   """Generates a unique, salted SHA512 password hash for /etc/shadow.
 
@@ -355,3 +493,19 @@ def gen_etc_shadow_password_hash(password: str) -> str:
   salt = secrets.token_urlsafe(16)
   result = subprocess.check_output(['openssl', 'passwd', '-6', '-salt', salt, password]).decode('utf-8').rstrip()
   return result
+
+def atomic_mv(source: str, dest: str) -> None:
+  """
+  Equivalent to the linux "mv" commandline.  Atomic within same volume, and overwrites the destination.
+  Works for directories.
+
+  Args:
+      source (str): Source file or directory.
+      dest (str): Destination file or directory. Will be overwritten if it exists.
+
+  Raises:
+      RuntimeError: Any error from the mv command
+  """
+  source = os.path.expanduser(source)
+  dest = os.path.expanduser(dest)
+  subprocess.check_call(['mv', source, dest])

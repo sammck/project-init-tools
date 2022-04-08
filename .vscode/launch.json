@@ -9,7 +9,17 @@
             "type": "python",
             "request": "launch",
             "module": "project_init_tools",
-            "args": [ "--tb", "--test" ]
+            "args": [ "--tb", "--test" ],
+            "justMyCode": false
         },
+        {
+            "name": "project-init init-env (cctest)",
+            "type": "python",
+            "request": "launch",
+            "module": "project_init_tools",
+            "cwd": "${workspaceFolder}/../aws-dev-box-template",
+            "args": [ "--tb", "init-env" ],
+            "justMyCode": false
+        }
     ]
 }

@@ -640,24 +640,6 @@ def sudo_check_call_stderr_exception(
     raise CalledProcessErrorWithStderrMessage(exit_code, args, stderr = stderr_s)
   return exit_code
 
-def unix_mv(source: str, dest: str, use_sudo: bool=False, sudo_reason: Optional[str]=None) -> None:
-  """
-  Equivalent to the linux "mv" commandline.  Atomic within same volume, and overwrites the destination.
-  Works for directories.
-
-  Args:
-      source (str): Source file or directory.
-      dest (str): Destination file or directory. Will be overwritten if it exists.
-      sudo (bool): If True, the move will be done as sudo
-      sudo_reason (str, optional): Reason why sudo is needed
-
-  Raises:
-      RuntimeError: Any error from the mv command
-  """
-  source = os.path.expanduser(source)
-  dest = os.path.expanduser(dest)
-  sudo_check_output_stderr_exception(['mv', source, dest], use_sudo=use_sudo, sudo_reason=sudo_reason)
-
 def chown_root(filename: str, sudo_reason: Optional[str]=None):
   sudo_check_output_stderr_exception(['chown', 'root.root', filename], sudo_reason=sudo_reason)
 
@@ -786,3 +768,22 @@ def should_run_with_group(group_name: str, require: bool=True) -> bool:
   else:
     result = not os_group_includes_current_process(group_name) and os_group_includes_user(group_name)
   return result
+
+def unix_mv(source: str, dest: str, use_sudo: bool=False, sudo_reason: Optional[str]=None) -> None:
+  """
+  Equivalent to the linux "mv" commandline.  Atomic within same volume, and overwrites the destination.
+  Works for directories.
+
+  Args:
+      source (str): Source file or directory.
+      dest (str): Destination file or directory. Will be overwritten if it exists.
+      sudo (bool): If True, the move will be done as sudo
+      sudo_reason (str, optional): Reason why sudo is needed
+
+  Raises:
+      RuntimeError: Any error from the mv command
+  """
+  source = os.path.expanduser(source)
+  dest = os.path.expanduser(dest)
+  sudo_check_output_stderr_exception(['mv', source, dest], use_sudo=use_sudo, sudo_reason=sudo_reason)
+
