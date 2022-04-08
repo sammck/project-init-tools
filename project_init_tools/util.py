@@ -5,7 +5,7 @@
 
 """Miscellaneous utility functions"""
 
-from typing import Type, Any, Optional, Union, List, Tuple
+from typing import MutableMapping, Type, Any, Optional, Union, List, Tuple
 from .internal_types import Jsonable
 
 import json
@@ -500,7 +500,7 @@ def atomic_mv(source: str, dest: str) -> None:
   Works for directories.
 
   Args:
-      source (str): Source file or directory.
+      source (str): Source file or directory.x
       dest (str): Destination file or directory. Will be overwritten if it exists.
 
   Raises:
@@ -509,3 +509,26 @@ def atomic_mv(source: str, dest: str) -> None:
   source = os.path.expanduser(source)
   dest = os.path.expanduser(dest)
   subprocess.check_call(['mv', source, dest])
+
+def deactivate_virtualenv(env: Optional[MutableMapping]=None):
+  """Modifies env vars to deactivate any activated virtualenv.
+
+     Works on the current os environment or a dict/MutableMapping.
+
+  Args:
+      env (Optional[MutableMapping], optional):
+              The environment to modify. If None, modifies the current
+              os.environ.  Defaults to None.
+  """
+  from jeepney.io.blocking import DBusConnection
+  if env is None:
+    env = os.environ
+  if 'VIRTUAL_ENV' in env:
+    venv = env['VIRTUAL_ENV']
+    del env['VIRTUAL_ENV']
+    if 'POETRY_ACTIVE' in env:
+      del env['POETRY_ACTIVE']
+    if 'PATH' in env:
+      from .installer.util import searchpath_remove_dir
+      venv_bin = os.path.join(venv, 'bin')
+      env['PATH'] = searchpath_remove_dir(env['PATH'], venv_bin)

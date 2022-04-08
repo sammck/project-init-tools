@@ -30,5 +30,6 @@ from .util import (
     gen_etc_shadow_password_hash,
     multiline_indent,
     atomic_mv,
+    deactivate_virtualenv,
   )
 from .pyproject_toml import PyprojectToml

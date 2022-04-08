@@ -19,7 +19,7 @@ import argparse
 from unittest.mock import NonCallableMagicMock
 import argcomplete # type: ignore[import]
 import json
-from base64 import b64encode, b64decode
+from base64 import b64encode, b64decode, encode
 import colorama # type: ignore[import]
 from colorama import Fore, Back, Style
 import subprocess
@@ -46,6 +46,7 @@ from project_init_tools import (
     JsonableList,
   )
 from project_init_tools.util import (
+    deactivate_virtualenv,
     full_name_of_type,
     full_type,
     get_git_config_value,
@@ -529,7 +530,7 @@ class CommandHandler:
 
           ### Prerequisites
 
-          **Python**: Python 3.7+ is required. See your OS documentation for instructions.
+          **Python**: Python 3.8+ is required. See your OS documentation for instructions.
 
           ### From PyPi
 
@@ -596,8 +597,85 @@ class CommandHandler:
           The author of {project_name} is [{friendly_name}]({user_homepage}).
         """)
 
+    gitignore_file = os.path.join(project_root_dir, ".gitignore")
+    gitignore_add_lines=dedent('''
+        __pycache__/
+        *.py[cod]
+        *$py.class
+        *.so
+        .Python
+        build/
+        develop-eggs/
+        dist/
+        downloads/
+        eggs/
+        .eggs/
+        lib/
+        lib64/
+        parts/
+        sdist/
+        var/
+        wheels/
+        pip-wheel-metadata/
+        share/python-wheels/
+        *.egg-info/
+        .installed.cfg
+        *.egg
+        MANIFEST
+        pip-log.txt
+        pip-delete-this-directory.txt
+        htmlcov/
+        .tox/
+        .nox/
+        .coverage
+        .coverage.*
+        .cache
+        nosetests.xml
+        coverage.xml
+        *.cover
+        *.py,cover
+        .hypothesis/
+        .pytest_cache/
+        *.mo
+        *.pot
+        *.log
+        local_settings.py
+        db.sqlite3
+        db.sqlite3-journal
+        instance/
+        .webassets-cache
+        .scrapy
+        docs/_build/
+        target/
+        .ipynb_checkpoints
+        profile_default/
+        ipython_config.py
+        .python-version
+        __pypackages__/
+        celerybeat-schedule
+        celerybeat.pid
+        *.sage.py
+        .env
+        .venv
+        env/
+        venv/
+        ENV/
+        env.bak/
+        venv.bak/
+        .spyderproject
+        .spyproject
+        .ropeproject
+        /site
+        .mypy_cache/
+        .dmypy.json
+        dmypy.json
+        .pyre/
+        /trash/
+        /.secret-kv/
+      ''').rstrip().split('\n')
 
     # ------
+    append_lines_to_file_if_missing(gitignore_file, gitignore_add_lines, create_file=True)
 
     set_toml_default(t_tool_poetry, 'name', project_name)
     set_toml_default(t_tool_poetry, 'version', project_version)
@@ -611,6 +689,9 @@ class CommandHandler:
 
     t_tool_poetry_dependencies = pyproject.get_table('tool.poetry.dependencies', auto_split=True, create=True)
     set_toml_default(t_tool_poetry_dependencies, 'python', "^3.8")
+    set_toml_default(t_tool_poetry_dependencies,
+        'xpulumi', dict(git="https://github.com/sammck/xpulumi.git", branch='main'))
+
     t_tool_poetry_dev_dependencies = pyproject.get_table('tool.poetry.dev-dependencies', auto_split=True, create=True)
     set_toml_default(t_tool_poetry_dev_dependencies, 'mypy', "^0.931")
     set_toml_default(t_tool_poetry_dev_dependencies, 'dunamai', "^1.9.0")
@@ -740,6 +821,11 @@ class CommandHandler:
     secret_kv_dir = os.path.join(project_root_dir, '.secret-kv')
     if not os.path.exists(secret_kv_dir):
       create_kv_store(project_root_dir)
+
+    no_venv_environ = dict(os.environ)
+    deactivate_virtualenv(no_venv_environ)
+
+    subprocess.check_call(['poetry', 'install'], cwd=project_root_dir, env=no_venv_environ)
 
     return 0
 
