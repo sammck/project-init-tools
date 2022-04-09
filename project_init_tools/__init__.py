@@ -71,3 +71,4 @@ from .os_packages import (
     update_os_package_list, upgrade_os_packages,
   )
 from .pi_config import ProjectInitConfig
+from .round_trip_config import RoundTripConfig

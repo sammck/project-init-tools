@@ -37,4 +37,3 @@ class ProjectInitConfig:
     self.project_init_dir = os.path.dirname(self.config_file)
     self.project_root_dir = os.path.dirname(self.project_init_dir)
     self.project_init_local_dir = os.path.join(self.project_init_dir, ".local")
-
