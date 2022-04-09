@@ -31,5 +31,9 @@ from .util import (
     multiline_indent,
     atomic_mv,
     deactivate_virtualenv,
+    get_aws_identity,
+    get_aws_account,
+    get_aws_region,
+    get_aws_session,
   )
 from .pyproject_toml import PyprojectToml

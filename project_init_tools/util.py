@@ -5,7 +5,7 @@
 
 """Miscellaneous utility functions"""
 
-from typing import MutableMapping, Type, Any, Optional, Union, List, Tuple
+from typing import MutableMapping, Type, Any, Optional, Union, List, Tuple, Dict
 from .internal_types import Jsonable
 
 import json
@@ -17,6 +17,9 @@ import subprocess
 import threading
 import tempfile
 import secrets
+import boto3
+from boto3.session import Session as BotoAwsSession
+from botocore.session import Session as BotocoreSession
 
 from .exceptions import ProjectInitError
 
@@ -532,3 +535,46 @@ def deactivate_virtualenv(env: Optional[MutableMapping]=None):
       from .installer.util import searchpath_remove_dir
       venv_bin = os.path.join(venv, 'bin')
       env['PATH'] = searchpath_remove_dir(env['PATH'], venv_bin)
+
+def get_aws_session(s: Optional[BotoAwsSession]=None) -> BotoAwsSession:
+  if s is None:
+    s = BotoAwsSession()
+  return s
+
+def get_aws_identity(s: Optional[BotoAwsSession]=None) -> Dict[str, str]:
+  """Fetches AWS identity including the account number associated with an AWS session.
+
+  The first time it is done for a session, requires a network request to AWS.
+  After that, the result is cached on the session object.
+
+  Args:
+      s (BotoAwsSession): The AWS session in question, or None to create a default session.
+                          Defaults to None.
+
+  Returns:
+      A dictionary with:
+         ['Arn']  the AWS user's Arn
+         ['Account'] The AWS account number
+         ['UserId'] The user's AWS user ID
+  """
+  s = get_aws_session(s)
+  result: Dict[str, str]
+  if hasattr(s, "_xpulumi_caller_identity"):
+    result = s._xpulumi_caller_identity  # type: ignore[attr-defined] # pylint: disable=protected-access
+  else:
+    sts = s.client('sts')
+    result = sts.get_caller_identity()
+    # cache the result on the session object
+    s._xpulumi_caller_identity = result  # type: ignore[attr-defined] # pylint: disable=protected-access
+  return result
+
+def get_aws_account(s: Optional[BotoAwsSession]=None) -> str:
+  return get_aws_identity(s)['Account']
+
+def get_aws_region(s: Optional[BotoAwsSession]=None, default: Optional[str]=None) -> Optional[str]:
+  s = get_aws_session(s)
+  result: Optional[str] = s.region_name
+  if result is None:
+    result = default
+
+  return result

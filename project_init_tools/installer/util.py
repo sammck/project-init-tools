@@ -7,7 +7,21 @@
 
 """General utilities for installation"""
 
-from typing import TYPE_CHECKING, Optional, List, Union, TextIO, cast, Callable, Any, Set, Tuple, Generator, overload, Literal
+from typing import (
+    TYPE_CHECKING,
+    Optional,List,
+    Union,
+    TextIO,
+    cast,
+    Callable,
+    Any,
+    Set,
+    Tuple,
+    Generator,
+    overload,
+    Literal,
+    Dict
+  )
 
 import os
 import sys
@@ -786,4 +800,3 @@ def unix_mv(source: str, dest: str, use_sudo: bool=False, sudo_reason: Optional[
   source = os.path.expanduser(source)
   dest = os.path.expanduser(dest)
   sudo_check_output_stderr_exception(['mv', source, dest], use_sudo=use_sudo, sudo_reason=sudo_reason)
-
