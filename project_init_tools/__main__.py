@@ -222,8 +222,11 @@ class CommandHandler:
   def get_project_init_dir(self) -> str:
     return self.get_config().project_init_dir
 
-  def get_project_init_local_dir(self) -> str:
-    return self.get_config().project_init_local_dir
+  def get_project_local_dir(self) -> str:
+    return self.get_config().project_local_dir
+
+  def get_project_local_bin_dir(self) -> str:
+    return self.get_config().project_local_bin_dir
 
   def get_pyproject_toml(self, create: Optional[bool]=False) -> PyprojectToml:
     if create is None:
@@ -296,7 +299,7 @@ class CommandHandler:
 
   def cmd_update_pulumi(self) -> int:
     from project_init_tools.installer.pulumi import install_pulumi
-    pulumi_dir = os.path.join(self.get_project_init_local_dir(), ".pulumi")
+    pulumi_dir = os.path.join(self.get_project_local_dir(), ".pulumi")
     install_pulumi(pulumi_dir, min_version='latest')
     return 0
 
@@ -319,16 +322,13 @@ class CommandHandler:
     return exit_code
 
   def cmd_init_env(self) -> int:
-    from project_init_tools.installer.docker import install_docker
-    from project_init_tools.installer.aws_cli import install_aws_cli
     from project_init_tools.installer.gh import install_gh
-    from project_init_tools.installer.pulumi import install_pulumi
     from project_init_tools.installer.poetry import install_poetry
     from project_init_tools.util import sudo_call
     from project_init_tools.os_packages import PackageList
 
     self.get_or_create_config()
-    local_dir = self.get_project_init_local_dir()
+    local_dir = self.get_project_local_dir()
     project_root_dir = self.get_project_root_dir()
     if not os.path.exists(local_dir):
       os.makedirs(local_dir)
@@ -657,113 +657,8 @@ class CommandHandler:
         /trash/
         /.xppulumi/
         /.secret-kv/
+        /.local/
       ''').rstrip().split('\n')
-
-    xp_dir = os.path.join(project_root_dir, 'xp')
-    xp_project_parent_dir = os.path.join(xp_dir, 'project')
-    xp_backend_parent_dir = os.path.join(xp_dir, 'backend')
-    aws_session = get_aws_session()
-    aws_account = get_aws_account(aws_session)
-    aws_region: str = cast(str, get_aws_region(aws_session, 'us-west-2'))
-    aws_venv_suffix = "-2"         # allows us to create multiple parallel installations in the same AWS account
-
-    local_backend_name = 'local'
-    local_backend_dir = os.path.join(xp_backend_parent_dir, local_backend_name)
-    local_backend_config_file = os.path.join(local_backend_dir, 'backend.json')
-    local_backend_org_dir = os.path.join(local_backend_dir, 'state', 'g')
-    local_backend_config: JsonableDict = dict(
-        options = dict(
-            includes_organization = False,
-            includes_project = False,
-            default_organization = "g",
-          ),
-        name = local_backend_name,
-        uri = "file://./state",
-      )
-
-    s3_backend_project_name = "s3_backend"
-    s3_backend_stack_name = "global"
-
-    s3_backend_name = 's3'
-    s3_backend_dir = os.path.join(xp_backend_parent_dir, s3_backend_name)
-    s3_backend_bucket_name = f"{aws_account}-{aws_region}-xpulumi{aws_venv_suffix}"
-    s3_backend_subkey = f"xpulumi{aws_venv_suffix}/prj"
-    s3_backend_uri = f"s3://{s3_backend_bucket_name}/{s3_backend_subkey}"
-    s3_backend_config_file = os.path.join(s3_backend_dir, 'backend.json')
-    s3_backend_config: JsonableDict = dict(
-        options = dict(
-            includes_organization = False,
-            includes_project = False,
-            default_organization = "g",
-            aws_region = aws_region,
-            aws_account = aws_account,
-            s3_bucket_stack = f"{s3_backend_project_name}:{s3_backend_stack_name}",
-          ),
-        name = s3_backend_name,
-        uri = s3_backend_uri,
-      )
-
-    s3_backend_project_dir = os.path.join(xp_project_parent_dir, s3_backend_project_name)
-    s3_backend_pulumi_project_name = f"be-{aws_account}-{aws_region}{aws_venv_suffix}"
-    s3_backend_project_state_dir = os.path.join(local_backend_org_dir, s3_backend_pulumi_project_name)
-    s3_backend_project_main_py_file = os.path.join(s3_backend_project_dir, '__main__.py')
-    s3_backend_project_xpulumi_config_file = os.path.join(s3_backend_project_dir, 'xpulumi-project.json')
-    s3_backend_project_pulumi_config_file = os.path.join(s3_backend_project_dir, 'Pulumi.yaml')
-    s3_backend_project_pulumi_stack_config_file = os.path.join(s3_backend_project_dir, f'Pulumi.{s3_backend_stack_name}.yaml')
-    s3_backend_project_xpulumi_config: JsonableDict = dict(
-        pulumi_project_name = s3_backend_pulumi_project_name,
-        organization = "g",
-        backend = local_backend_name
-      )
-    s3_backend_project_pulumi_config: JsonableDict = dict(
-        description = "Simple locally-backed pulumi project that manages an S3 backend used by all other projects",
-        name = s3_backend_pulumi_project_name,
-        runtime = dict(
-            name = "python",
-            options = dict(
-                virtualenv = "../../../.venv"
-              )
-          )
-      )
-    s3_backend_project_pulumi_stack_config: JsonableDict = dict(
-        config = {
-            'aws:region': aws_region,
-            f'{s3_backend_pulumi_project_name}:backend_url': s3_backend_uri,
-          }
-      )
-
-    # ------
-
-    if not os.path.isdir(xp_project_parent_dir):
-      os.makedirs(xp_project_parent_dir)
-    if not os.path.isdir(xp_backend_parent_dir):
-      os.makedirs(xp_backend_parent_dir)
-    if not os.path.exists(s3_backend_project_state_dir):
-      os.makedirs(s3_backend_project_state_dir)
-    if not os.path.exists(local_backend_config_file):
-      with open(local_backend_config_file, 'w', encoding='utf-8') as f:
-        json.dump(local_backend_config, f, indent=2, sort_keys=True)
-    if not os.path.exists(s3_backend_project_state_dir):
-      os.makedirs(s3_backend_project_state_dir)
-    if not os.path.exists(local_backend_config_file):
-      with open(local_backend_config_file, 'w', encoding='utf-8') as f:
-        json.dump(local_backend_config, f, indent=2, sort_keys=True)
-    if not os.path.exists(s3_backend_dir):
-      os.makedirs(s3_backend_dir)
-    if not os.path.exists(s3_backend_config_file):
-      with open(s3_backend_config_file, 'w', encoding='utf-8') as f:
-        json.dump(s3_backend_config, f, indent=2, sort_keys=True)
-    if not os.path.exists(s3_backend_project_dir):
-      os.makedirs(s3_backend_project_dir)
-    if not os.path.exists(s3_backend_project_xpulumi_config_file):
-      with open(s3_backend_project_xpulumi_config_file, 'w', encoding='utf-8') as f:
-        json.dump(s3_backend_project_xpulumi_config, f, indent=2, sort_keys=True)
-    if not os.path.exists(s3_backend_project_pulumi_config_file):
-      with open(s3_backend_project_pulumi_config_file, 'w', encoding='utf-8') as f:
-        yaml.dump(s3_backend_project_pulumi_config, f)
-    if not os.path.exists(s3_backend_project_pulumi_stack_config_file):
-      with open(s3_backend_project_pulumi_stack_config_file, 'w', encoding='utf-8') as f:
-        yaml.dump(s3_backend_project_pulumi_stack_config, f)
 
     append_lines_to_file_if_missing(gitignore_file, gitignore_add_lines, create_file=True)
 
@@ -870,31 +765,6 @@ class CommandHandler:
             f.write("#!/usr/bin/env python3\n")
           f.write(pyfile_header+dedent(content))
 
-    write_pyfile(s3_backend_project_main_py_file, '''
-        import pulumi
-        import pulumi_aws as aws
-        from xpulumi.runtime import pconfig, aws_provider, split_s3_uri
-
-        backend_uri = pconfig.require("backend_uri")
-        bucket_name, backend_subkey = split_s3_uri(backend_uri)
-        while backend_subkey.endswith('/'):
-          backend_subkey = backend_subkey[:-1]
-
-        slash_backend_subkey = '' if backend_subkey == '' else '/' + backend_subkey
-
-        bucket = aws.s3.Bucket("bucket",
-            bucket=bucket_name,
-            opts=pulumi.ResourceOptions(
-                provider=aws_provider,
-              )
-          )
-
-        pulumi.export("backend_bucket", bucket_name)
-        pulumi.export("backend_subkey", backend_subkey)
-        pulumi.export("backend_uri", backend_uri)
-      ''')
-
-
     write_pyfile("__init__.py", f'''
             """
             Package {package_import_name}: {project_description}
@@ -926,13 +796,9 @@ class CommandHandler:
       with open(project_readme_file, 'w', encoding='utf-8') as f:
         f.write(project_readme_text)
 
-    install_docker()
-    install_aws_cli()
     install_gh()
 
     project_root_dir = self.get_project_root_dir()
-    project_init_pulumi_dir = os.path.join(local_dir, '.pulumi')
-    install_pulumi(project_init_pulumi_dir, min_version='latest')
     secret_kv_dir = os.path.join(project_root_dir, '.secret-kv')
     if not os.path.exists(secret_kv_dir):
       create_kv_store(project_root_dir)
