@@ -50,6 +50,13 @@ import shlex
 from collections import defaultdict
 from functools import lru_cache, _make_key
 
+import yaml
+
+try:
+  from yaml import CLoader as YamlLoader, CDumper as YamlDumper
+except ImportError:
+  from yaml import Loader as YamlLoader, Dumper as YamlDumper  #type: ignore[misc]
+
 # mypy really struggles with this
 if TYPE_CHECKING:
   from subprocess import _CMD, _FILE, _ENV
@@ -1358,3 +1365,6 @@ def unix_mv(source: str, dest: str, use_sudo: bool=False, sudo_reason: Optional[
   source = os.path.expanduser(source)
   dest = os.path.expanduser(dest)
   sudo_check_output_stderr_exception(['mv', source, dest], use_sudo=use_sudo, sudo_reason=sudo_reason)
+
+if TYPE_CHECKING:
+  _exported_keep = [ yaml, YamlLoader, YamlDumper]

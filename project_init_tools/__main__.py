@@ -30,11 +30,6 @@ from urllib.parse import urlparse, ParseResult
 import ruamel.yaml # type: ignore[import]
 from io import StringIO
 
-try:
-  from yaml import CLoader as YamlLoader, CDumper as YamlDumper
-except ImportError:
-  from yaml import Loader as YamlLoader, Dumper as YamlDumper  #type: ignore[misc]
-
 # This module runs as -m -- do NOT use relative imports
 from project_init_tools.util import (
   file_contents,
@@ -62,6 +57,8 @@ from project_init_tools import (
     get_git_user_friendly_name,
     pathname_to_file_url,
     dedent,
+    ProjectInitConfig,
+    yaml, YamlLoader
   )
 
 def is_colorizable(stream: TextIO) -> bool:
@@ -156,29 +153,6 @@ class RoundTripConfig(MutableMapping[str, Any]):
     else:
       for k, v in kwargs.items():
         self.data[k] = v
-
-class ProjectInitConfig:
-  config_file: str
-  config_data: JsonableDict
-  project_root_dir: str
-  project_init_dir: str
-  project_init_local_dir: str
-
-  def __init__(self, config_file: Optional[str]=None, starting_dir: Optional[str]=None):
-    if starting_dir is None:
-      starting_dir = '.'
-    if config_file is None:
-      project_root_dir = get_git_root_dir(starting_dir)
-      if project_root_dir is None:
-        raise ProjectInitError("Could not locate Git project root directory; please run inside git working directory or use -C")
-      config_file = os.path.join(project_root_dir, 'project-init/config.yaml')
-
-    self.config_file = os.path.abspath(os.path.normpath(os.path.expanduser(config_file)))
-    with open(self.config_file, encoding='utf-8') as f:
-      self.config_data = yaml.load(f, Loader=YamlLoader)
-    self.project_init_dir = os.path.dirname(self.config_file)
-    self.project_root_dir = os.path.dirname(self.project_init_dir)
-    self.project_init_local_dir = os.path.join(self.project_init_dir, ".local")
 
 class CommandHandler:
   _argv: Optional[Sequence[str]]

@@ -56,6 +56,7 @@ from .util import (
     searchpath_split, should_run_with_group, sudo_call,
     sudo_check_call, sudo_check_output,
     sudo_check_output_stderr_exception, sudo_Popen, unix_mv,
+    yaml, YamlLoader, YamlDumper,
   )
 from .pyproject_toml import PyprojectToml
 from .os_packages import (
@@ -69,3 +70,4 @@ from .os_packages import (
     update_apt_sources_list, update_gpg_keyring,
     update_os_package_list, upgrade_os_packages,
   )
+from .pi_config import ProjectInitConfig
