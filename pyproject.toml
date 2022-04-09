@@ -29,6 +29,7 @@ python-semantic-release = "^7.25.2"
 types-urllib3 = "^1.26.11"
 types-PyYAML = "^6.0.5"
 pylint = "^2.13.5"
+boto3-stubs = "^1.21.37"
 
 [build-system]
 requires = ["poetry-core>=1.0.0"]
@@ -63,6 +64,7 @@ disable=[
     "broad-except",
     "too-many-branches",
     "too-many-statements",
+    "too-many-lines",
     "exec-used",
     "ungrouped-imports",
     "subprocess-popen-preexec-fn",

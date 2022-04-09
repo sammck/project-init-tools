@@ -35,17 +35,19 @@ try:
 except ImportError:
   from yaml import Loader as YamlLoader, Dumper as YamlDumper  #type: ignore[misc]
 
-# NOTE: this module runs with -m; do not use relative imports
-from project_init_tools.exceptions import ProjectInitError
-from project_init_tools.installer.util import file_contents
-from project_init_tools.pyproject_toml import PyprojectToml
+# This module runs as -m -- do NOT use relative imports
+from project_init_tools.util import (
+  file_contents,
+  get_current_os_user,
+)
+
 from project_init_tools import (
     __version__ as pkg_version,
+    ProjectInitError,
+    PyprojectToml,
     Jsonable,
     JsonableDict,
     JsonableList,
-  )
-from project_init_tools.util import (
     deactivate_virtualenv,
     full_name_of_type,
     full_type,
@@ -250,6 +252,8 @@ class CommandHandler:
     return self.get_config().project_init_local_dir
 
   def get_pyproject_toml(self, create: Optional[bool]=False) -> PyprojectToml:
+    if create is None:
+      create = False
     if self._pyproject_toml is None:
       self._pyproject_toml = PyprojectToml(project_dir=self.get_project_root_dir(), create=create)
     return self._pyproject_toml
@@ -317,13 +321,13 @@ class CommandHandler:
     return 0
 
   def cmd_update_pulumi(self) -> int:
-    from project_init_tools.installer import install_pulumi
+    from project_init_tools.installer.pulumi import install_pulumi
     pulumi_dir = os.path.join(self.get_project_init_local_dir(), ".pulumi")
     install_pulumi(pulumi_dir, min_version='latest')
     return 0
 
   def cmd_run(self) -> int:
-    from project_init_tools.installer.util import sudo_call
+    from project_init_tools.util import sudo_call
     args = self._args
     group: Optional[str] = args.run_with_group
     use_sudo: bool = args.use_sudo
@@ -346,8 +350,8 @@ class CommandHandler:
     from project_init_tools.installer.gh import install_gh
     from project_init_tools.installer.pulumi import install_pulumi
     from project_init_tools.installer.poetry import install_poetry
-    from project_init_tools.installer.util import sudo_call
-    from project_init_tools.installer.os_packages import PackageList
+    from project_init_tools.util import sudo_call
+    from project_init_tools.os_packages import PackageList
 
     self.get_or_create_config()
     local_dir = self.get_project_init_local_dir()
@@ -428,6 +432,9 @@ class CommandHandler:
             project_homepage = f"https://{trep[4:].replace(':', '/', 1)}"
           else:
             project_homepage = trep
+    if project_homepage is None:
+      username = get_current_os_user()
+      project_homepage = f"https://github.com/{username}/{project_name}"
     user_homepage = project_homepage.rsplit('/', 1)[0]
 
     repo_user: Optional[str] = None
@@ -683,7 +690,7 @@ class CommandHandler:
     xp_backend_parent_dir = os.path.join(xp_dir, 'backend')
     aws_session = get_aws_session()
     aws_account = get_aws_account(aws_session)
-    aws_region: str = get_aws_region(aws_session, 'us-west-2')
+    aws_region: str = cast(str, get_aws_region(aws_session, 'us-west-2'))
     aws_venv_suffix = "-2"         # allows us to create multiple parallel installations in the same AWS account
 
     local_backend_name = 'local'
@@ -750,8 +757,6 @@ class CommandHandler:
             f'{s3_backend_pulumi_project_name}:backend_url': s3_backend_uri,
           }
       )
-    
-
 
     # ------
 

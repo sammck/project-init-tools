@@ -7,7 +7,7 @@
 
 """Standard GitHub gh CLI installer/upgrader"""
 
-from .installer import (
+from .gh_installer import (
     install_gh,
     gh_is_installed,
     get_gh_version,

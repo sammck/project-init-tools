@@ -27,7 +27,7 @@ from contextlib import contextmanager
 
 from ...exceptions import ProjectInitError
 
-from ..util import (
+from ...util import (
     command_exists,
     command_exists_outside_venv,
     download_url_file,

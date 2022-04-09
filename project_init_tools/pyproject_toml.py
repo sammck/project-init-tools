@@ -29,7 +29,7 @@ class PyprojectToml:
     elif not project_dir is None:
       project_dir = os.path.abspath(os.path.normpath(os.path.expanduser(project_dir)))
     if project_dir is None:
-      raise ValueError(f"Not in a git project, and project directory not provided")
+      raise ValueError("Not in a git project, and project directory not provided")
     if not os.path.isdir(project_dir):
       raise FileNotFoundError(f"Project directory does not exist: {project_dir}")
     self.project_dir = project_dir
@@ -47,7 +47,7 @@ class PyprojectToml:
     self.data = tomlkit.parse(bcontent)
     self._raw_text = self.as_toml()
 
-  def __str(self) -> str:
+  def __str__(self) -> str:
     return str(self.data)
 
   def __repr__(self) -> str:
@@ -91,7 +91,7 @@ class PyprojectToml:
         parts = table_name.split('.')
       else:
         parts = [ table_name ]
-    current = self.data
+    current: Union[Table, OutOfOrderTableProxy, Container]  = self.data
     current_path = ''
     for i, part in enumerate(parts):
       current_path = part if current_path == '' else current_path + '.' + part

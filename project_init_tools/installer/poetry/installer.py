@@ -29,7 +29,7 @@ from contextlib import contextmanager
 
 from ...exceptions import ProjectInitError
 
-from ..util import (
+from ...util import (
     command_exists,
     find_command_in_path,
     download_url_text,

@@ -29,9 +29,8 @@ from threading import Lock
 import glob
 
 from ...exceptions import ProjectInitError
-from ..os_packages.util import os_group_add_user, update_gpg_keyring, PackageList, update_apt_sources_list
-
-from ..util import (
+from ...os_packages import os_group_add_user, update_gpg_keyring, PackageList, update_apt_sources_list
+from ...util import (
     command_exists,
     command_exists_outside_venv,
     download_url_file,

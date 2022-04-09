@@ -16,7 +16,7 @@ import subprocess
 import sys
 from typing import List, Optional, Set, TextIO, Union, cast, Iterator
 
-from ..util import (check_version_ge, chown_root, command_exists,
+from .util import (check_version_ge, chown_root, command_exists,
                     download_url_file, file_contents, files_are_identical,
                     get_current_os_user, get_tmp_dir, os_group_includes_user,
                     run_once, sudo_check_call,
