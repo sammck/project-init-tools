@@ -46,7 +46,7 @@ class RoundTripConfig(MutableMapping[str, Any]):
   def data(self) -> MutableMapping[str, Any]:
     return self._data
 
-  def save(self):
+  def as_yaml(self) -> str:
     if self._yaml is None:
       text = json.dumps(cast(JsonableDict, self.data), indent=2, sort_keys=True)
     else:
@@ -55,9 +55,20 @@ class RoundTripConfig(MutableMapping[str, Any]):
         text = output.getvalue()
     if not text.endswith('\n'):
       text += '\n'
-    if text != self._text:
+    return text
+
+  def is_dirty(self) -> bool:
+    text = self.as_yaml()
+    changed = text != self._text
+    return changed
+
+  def save(self) -> bool:
+    text = self.as_yaml()
+    changed = text != self._text
+    if changed:
       with open(self._config_file, 'w', encoding='utf-8') as f:
         f.write(text)
+    return changed
 
   def __setitem__(self, key: str, value: Any):
     self.data[key] = value
