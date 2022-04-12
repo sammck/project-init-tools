@@ -28,6 +28,7 @@ from .util import (
 class RoundTripConfig(MutableMapping[str, Any]):
   _config_file: str
   _text: str
+  """The original text of the document before any unsaved changes are applied"""
   _data: MutableMapping[str, Any]
   _yaml: Optional[ruamel.yaml.YAML] = None
 
@@ -43,10 +44,22 @@ class RoundTripConfig(MutableMapping[str, Any]):
     assert isinstance(self._data, dict)
 
   @property
+  def is_yaml(self) -> bool:
+    return not self._yaml is None
+
+  def get_yaml_data(self) -> ruamel.yaml.YAML:
+    assert self.is_yaml
+    return self._yaml
+
+  @property
   def data(self) -> MutableMapping[str, Any]:
     return self._data
 
-  def as_yaml(self) -> str:
+  @property
+  def filename(self) -> str:
+    return self._config_file
+
+  def as_text(self) -> str:
     if self._yaml is None:
       text = json.dumps(cast(JsonableDict, self.data), indent=2, sort_keys=True)
     else:
@@ -58,12 +71,12 @@ class RoundTripConfig(MutableMapping[str, Any]):
     return text
 
   def is_dirty(self) -> bool:
-    text = self.as_yaml()
+    text = self.as_text()
     changed = text != self._text
     return changed
 
   def save(self) -> bool:
-    text = self.as_yaml()
+    text = self.as_text()
     changed = text != self._text
     if changed:
       with open(self._config_file, 'w', encoding='utf-8') as f:
