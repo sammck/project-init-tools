@@ -174,6 +174,7 @@ def get_docker_prog() -> str:
     raise FileNotFoundError("Docker program is not in PATH")
   return result
 
+
 def get_docker_version() -> str:
   result = cast(bytes,
       sudo_check_output_stderr_exception(
