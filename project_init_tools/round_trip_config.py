@@ -11,7 +11,7 @@ fidelity for YAML updates (e.g., preserves comments).
 """
 
 from typing import (
-    Optional, MutableMapping,
+    Optional, Mapping, MutableMapping,
     cast, Any, Iterator, ItemsView, ValuesView, KeysView )
 
 import json
@@ -114,8 +114,13 @@ class RoundTripConfig(MutableMapping[str, Any]):
     if len(args) > 0:
       assert len(args) == 1
       assert len(kwargs) == 0
-      for k, v in kwargs.items():
-        self.data[k] = v
+      arg = args[0]
+      if isinstance(arg, Mapping):
+        for k, v in arg.items():
+          self.data[k] = v
+      else:
+        for k, v in arg:
+          self.data[k] = v
     else:
       for k, v in kwargs.items():
         self.data[k] = v
