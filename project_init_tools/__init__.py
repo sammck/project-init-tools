@@ -23,6 +23,7 @@ from .util import (
     file_url_to_pathname,
     pathname_to_file_url,
     get_git_config_value,
+    get_optional_git_config_value,
     get_git_root_dir,
     get_git_user_email,
     get_git_user_friendly_name,

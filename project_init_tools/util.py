@@ -261,11 +261,28 @@ def pathname_to_file_url(pathname: str, cwd: Optional[str]=None) -> str:
   url = pathlib.Path(pathname).as_uri()
   return url
 
-def get_git_config_value(name: str, cwd: Optional[str]=None) -> str:
+
+def get_optional_git_config_value(name: str, cwd: Optional[str]=None) -> Optional[str]:
   """Gets a configuration value from the local git installation"""
   if cwd is None:
     cwd = '.'
-  result = subprocess.check_output(['git', '-C', cwd, 'config', name]).decode('utf-8').rstrip()
+  try:
+    result = sudo_check_output_stderr_exception(
+        ['git', '-C', cwd, 'config', name],
+        use_sudo=False,
+      ).decode('utf-8').rstrip()
+  except CalledProcessErrorWithStderrMessage as e:
+    if e.returncode == 1 and (e.stderr is None or len(e.stderr) == 0):
+      result = None
+    else:
+      raise
+  return result
+
+def get_git_config_value(name: str, cwd: Optional[str]=None) -> str:
+  """Gets a configuration value from the local git installation"""
+  result = get_optional_git_config_value(name, cwd=cwd)
+  if result is None:
+    raise KeyError(f"git config value '{name}' does not exist")
   return result
 
 def get_git_user_email(cwd: Optional[str]=None) -> str:
