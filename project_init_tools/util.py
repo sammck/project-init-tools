@@ -278,12 +278,17 @@ def get_optional_git_config_value(name: str, cwd: Optional[str]=None) -> Optiona
       raise
   return result
 
-def set_git_config_value(name: str, value: str, cwd: Optional[str]=None) -> None:
+def set_git_config_value(name: str, value: str, cwd: Optional[str]=None, is_global: bool=False) -> None:
   """Sets a configuration value in the local git installation"""
   if cwd is None:
     cwd = '.'
+  cmd = ['git', '-C', cwd, 'config']
+  if is_global:
+    cmd.append('--global')
+  cmd.extend([name, value])
+
   sudo_check_output_stderr_exception(
-        ['git', '-C', cwd, 'config', name, value],
+        cmd,
         use_sudo=False,
       )
 
@@ -302,13 +307,13 @@ def get_git_user_friendly_name(cwd: Optional[str]=None) -> str:
   """Gets the friendly name associated with the local git installation"""
   return get_git_config_value('user.name', cwd=cwd)
 
-def set_git_user_email(value: str, cwd: Optional[str]=None) -> None:
+def set_git_user_email(value: str, cwd: Optional[str]=None, is_global: bool=True) -> None:
   """Sets the user email address associated with the local git installation"""
-  set_git_config_value('user.email', value, cwd=cwd)
+  set_git_config_value('user.email', value, cwd=cwd, is_global=is_global)
 
-def set_git_user_friendly_name(value: str, cwd: Optional[str]=None) -> None:
+def set_git_user_friendly_name(value: str, cwd: Optional[str]=None, is_global: bool=True) -> None:
   """Sets the friendly name associated with the local git installation"""
-  set_git_config_value('user.name', value, cwd=cwd)
+  set_git_config_value('user.name', value, cwd=cwd, is_global=is_global)
 
 def get_git_root_dir(starting_dir: Optional[str]=None) -> Optional[str]:
   """Find the root directory of the current git project
