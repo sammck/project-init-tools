@@ -278,6 +278,10 @@ def install_docker(force: bool=False):
     if not docker_is_installed():
       raise ProjectInitError("Docker client still not found in PATH after install/upgrade.")
 
+    if not os_group_exists('docker'):
+      raise ProjectInitError(
+        f"The OS group 'docker' does not exist, even though Docker client version {version} is installed")
+
     prog = get_docker_prog()
     version = get_docker_version()
 
@@ -287,10 +291,6 @@ def install_docker(force: bool=False):
           f"does not meet the minimum version {MIN_DOCKER_CLIENT_VERSION}")
 
     print(f"Docker client version {version} successfully installed...", file=sys.stderr)
-
-  if not os_group_exists('docker'):
-    raise ProjectInitError(
-      f"The OS group 'docker' does not exist, even though Docker client version {version} is installed")
 
   if not os_group_includes_user('docker'):
     print(f"User {get_current_os_user()} is not in the 'docker' OS group--adding...", file=sys.stderr)
