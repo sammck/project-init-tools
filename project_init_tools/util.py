@@ -29,6 +29,7 @@ from .internal_types import Jsonable, JsonableDict
 
 import json
 import hashlib
+import string
 import os
 from urllib.parse import urlparse, ParseResult, urlunparse, unquote as url_unquote
 import pathlib
@@ -562,7 +563,24 @@ def dedent(
 
   return '\n'.join(lines)
 
-def gen_etc_shadow_password_hash(password: str) -> str:
+def gen_etc_shadow_password_salt(num_chars: int=16) -> str:
+  # linux mkpasswd only accepts salt with chars in [a-zA-Z0-9/.].
+  # openssl passwd is too lax, and it will allow '-' and '_' in the salt.
+  # As a result there is a chance user could never log in unless
+  # we constrain it as above.
+  # secrets.token_urlsafe returns chars in [a-zA-Z0-9_\-]
+  if not 8 <= num_chars <= 16:
+    raise ValueError(f"Invalid /etc/shadow password salt length: {num_chars}")
+  salt = secrets.token_urlsafe(num_chars).replace('-', '/').replace('_', '.')
+  return salt
+
+_valid_shadow_password_chars = set(string.ascii_lowercase + string.ascii_uppercase + string.digits + '/.')
+def is_valid_etc_shadow_password_salt(salt: str) -> bool:
+  # linux mkpasswd only accepts salt with chars in [a-zA-Z0-9/.],
+  # and the salt must be 8-12 chars in length
+  return 8 <= len(salt) <= 16 and all(c in _valid_shadow_password_chars for c in salt)
+
+def gen_etc_shadow_password_hash(password: str, salt: Optional[str]=None, num_chars: int=16) -> str:
   """Generates a unique, salted SHA512 password hash for /etc/shadow.
 
   The resulting string is suitable for direct insertion into /etc/shadow.
@@ -571,12 +589,22 @@ def gen_etc_shadow_password_hash(password: str) -> str:
 
   Args:
       password (str): A cleartext password
+      salt: (str, optional): A known salt string. Must only contain characters in
+           [a-zA-Z0-9/.], and be from 8 to 16 characters in length. 16 is preferred.
+           If omitted, a 16-character random salt is generated; it will be in
+           returnval[3:19].
 
   Returns:
       str: A salted, SHA-512 hash of the password expressed as a string
-           compatible with /etc/shadow.
+           compatible with /etc/shadow. 
   """
-  salt = secrets.token_urlsafe(16)
+  if salt is None:
+    salt = gen_etc_shadow_password_salt(num_chars)
+
+  if not is_valid_etc_shadow_password_salt(salt):
+    raise ValueError(f"Invalid /etc/shadow password salt string: '{salt}'")
+
+  # use openssl rather than mkpasswd because the latter is not installed in base os
   result = subprocess.check_output(['openssl', 'passwd', '-6', '-salt', salt, password]).decode('utf-8').rstrip()
   return result
 
