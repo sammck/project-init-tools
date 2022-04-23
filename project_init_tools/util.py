@@ -571,7 +571,9 @@ def gen_etc_shadow_password_salt(num_chars: int=16) -> str:
   # secrets.token_urlsafe returns chars in [a-zA-Z0-9_\-]
   if not 8 <= num_chars <= 16:
     raise ValueError(f"Invalid /etc/shadow password salt length: {num_chars}")
-  salt = secrets.token_urlsafe(num_chars).replace('-', '/').replace('_', '.')
+  # token_urlsafe returns a base64 encoding of num_chars binary bytes. the
+  # string will be longer than num_chars but we can truncate
+  salt = secrets.token_urlsafe(num_chars)[:num_chars].replace('-', '/').replace('_', '.')
   return salt
 
 _valid_shadow_password_chars = set(string.ascii_lowercase + string.ascii_uppercase + string.digits + '/.')
