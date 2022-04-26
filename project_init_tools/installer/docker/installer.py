@@ -180,7 +180,6 @@ def get_docker_version() -> str:
       sudo_check_output_stderr_exception(
           [get_docker_prog(), 'version', '-f{{.Client.Version}}'],
           use_sudo=False,
-          run_with_group='docker',
         )
     ).decode('utf-8').rstrip()
   return result
