@@ -47,6 +47,7 @@ from ...util import (
     check_version_ge,
     file_contents,
     get_current_os_user,
+    CalledProcessErrorWithStderrMessage,
 )
 
 
@@ -176,12 +177,25 @@ def get_docker_prog() -> str:
 
 
 def get_docker_version() -> str:
-  result = cast(bytes,
-      sudo_check_output_stderr_exception(
-          [get_docker_prog(), 'version', '-f{{.Client.Version}}'],
-          use_sudo=False,
-        )
-    ).decode('utf-8').rstrip()
+  try:
+    result = cast(bytes,
+        sudo_check_output_stderr_exception(
+            [get_docker_prog(), 'version', '-f{{.Client.Version}}'],
+            use_sudo=False,
+          )
+      ).decode('utf-8').rstrip()
+  except CalledProcessErrorWithStderrMessage as e:
+    # Docker prints an error message and returns an error code if the
+    # server is not reachable or the user does not have permission to
+    # contact the server, even though we are only asking for client version.
+    # It still writes the client version to stdout in this case. So as long
+    # as we get a version back we will ignore errors here.
+    result_b: Optional[bytes] = e.output
+    if not result_b is None:
+      result_s = (result_b if isinstance(result_b, str) else result_b.decode('utf-8')).rstrip()
+      if len(result_s) >= 3:
+        return result_s
+    raise
   return result
 
 def get_docker_server_version() -> str:

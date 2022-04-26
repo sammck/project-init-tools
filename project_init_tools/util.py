@@ -1238,7 +1238,7 @@ def sudo_check_output_stderr_exception(
       encoding = 'utf-8'
     stderr_s = stderr_bytes if isinstance(stderr_bytes, str) else stderr_bytes.decode(encoding)
     stderr_s = stderr_s.rstrip()
-    raise CalledProcessErrorWithStderrMessage(exit_code, args, stderr = stderr_s)
+    raise CalledProcessErrorWithStderrMessage(exit_code, args, stderr=stderr_s, output=stdout_bytes)
   return stdout_bytes
 
 def sudo_check_call_stderr_exception(
