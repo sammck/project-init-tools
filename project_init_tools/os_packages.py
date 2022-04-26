@@ -242,7 +242,7 @@ def create_os_group(
       raise ProjectInitError(f"Required GID {gid} for OS group '{group_name}' is already in use by group {existing_group}")
     else:
       gid = None
-  cmd = [ ' groupadd' ]
+  cmd = [ 'groupadd' ]
   if is_system:
     cmd.append('--system')
   if not gid is None:
