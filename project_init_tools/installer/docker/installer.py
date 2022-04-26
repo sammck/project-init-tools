@@ -29,7 +29,7 @@ from threading import Lock
 import glob
 
 from ...exceptions import ProjectInitError
-from ...os_packages import os_group_add_user, update_gpg_keyring, PackageList, update_apt_sources_list
+from ...os_packages import os_group_add_user, update_gpg_keyring, PackageList, update_apt_sources_list, create_os_group
 
 from ...util import (
     command_exists,
@@ -196,6 +196,9 @@ def get_docker_server_version() -> str:
   return result
 
 def install_docker(force: bool=False):
+  if not os_group_exists('docker'):
+    print(f"Creating 'docker' OS group", file=sys.stderr)
+    create_os_group('docker', gid=998, required_gid=False)
   need_client_install: bool = True
   if docker_is_installed():
     prog = get_docker_prog()

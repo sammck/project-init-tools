@@ -339,7 +339,7 @@ def install_pulumi(
   if upgrade_version is None:
     upgrade_version = get_pulumi_latest_version()
     if not min_version is None and not check_version_ge(upgrade_version, min_version):
-      raise RuntimeError("Requested Pulumi upgrade version {upgrade_version} is less than than minimum required version {min_version}")
+      raise RuntimeError(f"Requested Pulumi upgrade version {upgrade_version} is less than than minimum required version {min_version}")
 
   download_pulumi(dirname, upgrade_version, stderr=stderr)
   print(f"Pulumi cli version {upgrade_version} successfully installed in {dirname}.", file=stderr)

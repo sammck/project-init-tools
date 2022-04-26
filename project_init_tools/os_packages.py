@@ -16,11 +16,14 @@ import subprocess
 import sys
 from typing import List, Optional, Set, TextIO, Union, cast, Iterator
 
+from .exceptions import ProjectInitError
+
 from .util import (check_version_ge, chown_root, command_exists,
                     download_url_file, file_contents, files_are_identical,
                     get_current_os_user, get_tmp_dir, os_group_includes_user,
                     run_once, sudo_check_call,
-                    sudo_check_output_stderr_exception, unix_mv)
+                    sudo_check_output_stderr_exception, unix_mv, os_group_exists,
+                    get_gid_of_group, gid_exists, get_group_of_gid)
 
 _os_package_metadata_stale: bool = True
 def invalidate_os_package_list() -> None:
@@ -218,20 +221,38 @@ class PackageList:
   def is_empty(self) -> bool:
     return len(self._package_names) == 0
 
-
-def create_os_group(group_name: str, stderr: Optional[TextIO]=None) -> int:
-  gid: Optional[int] = None
-  try:
-    groupinfo = grp.getgrnam(group_name)
-    gid = groupinfo.gr_gid
-  except KeyError:
-    pass
-
+def create_os_group(
+      group_name: str,
+      gid: Optional[int]=None,
+      required_gid: bool=True,
+      is_system: bool=False,
+      stderr: Optional[TextIO]=None,
+    ) -> int:
   if gid is None:
-    sudo_check_output_stderr_exception(['groupadd', group_name], stderr=stderr, sudo_reason=f"Adding OS group '{group_name}'")
-    groupinfo = grp.getgrnam(group_name)
-    gid = groupinfo.gr_gid
-  return gid
+    required_gid = False
+  if os_group_exists(group_name):
+    existing_gid = get_gid_of_group(group_name)
+    if required_gid:
+      if existing_gid != gid:
+        raise ProjectInitError(f"OS group '{group_name}' already exists and its GID {existing_gid} differs from required GID {gid}")
+    return existing_gid
+  if not gid is None and gid_exists(gid):
+    if required_gid:
+      existing_group = get_group_of_gid(gid)
+      raise ProjectInitError(f"Required GID {gid} for OS group '{group_name}' is already in use by group {existing_group}")
+    else:
+      gid = None
+  cmd = [ ' groupadd' ]
+  if is_system:
+    cmd.append('--system')
+  if not gid is None:
+    cmd.extend( [ '-g', str(gid) ] )
+  cmd.append(group_name)
+  sudo_check_output_stderr_exception(cmd, stderr=stderr, sudo_reason=f"Adding OS group '{group_name}'")
+  new_gid = get_gid_of_group(group_name)
+  if not gid is None and new_gid != gid:
+    raise ProjectInitError(f"OS group '{group_name}' successfully created, but created GID {new_gid} does not match required GID {gid}")
+  return new_gid
 
 def os_group_add_user(group_name: str, user: Optional[str]=None, stderr: Optional[TextIO]=None):
   if user is None:

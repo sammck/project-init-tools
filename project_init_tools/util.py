@@ -5,6 +5,7 @@
 
 """Miscellaneous utility functions"""
 
+import re
 from typing import (
     TYPE_CHECKING,
     Optional,
@@ -777,11 +778,29 @@ def searchpath_append(searchpath: Optional[str], dirname: str) -> str:
   return searchpath_join(searchpath_parts_append(searchpath_split(searchpath), dirname))
 
 def get_current_architecture() -> str:
+  """Returns current hardware architecture; e.g., aarch64 or x86_64"""
   return platform.machine()
+
+def get_current_system() -> str:
+  """Returns current software platform; e.g., Linux or Darwin"""
+  return platform.system()
 
 def get_gid_of_group(group: str) -> int:
   gi = grp.getgrnam(group)
   return gi.gr_gid
+
+def get_group_of_gid(gid: int) -> str:
+  gi = grp.getgrgid(gid)
+  return gi.gr_name
+
+def gid_exists(gid: int) -> bool:
+  result = False
+  try:
+    get_group_of_gid(gid)
+    result = True
+  except KeyError:
+    pass
+  return result
 
 def get_file_hash_hex(filename: str) -> str:
   h = hashlib.sha256()
