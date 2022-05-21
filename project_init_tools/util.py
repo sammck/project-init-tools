@@ -837,26 +837,53 @@ def download_url_file(
       url: str,
       filename: str,
       pool_manager: Optional[urllib3.PoolManager]=None,
-      filter_cmd: Optional[Union[str, List[str]]]=None
+      filter_cmd: Optional[Union[str, List[str]]]=None,
+      mode: Optional[int] = None,
+      uid: Optional[int] = None,
+      gid: Optional[int] = None,
     ) -> None:
   if pool_manager is None:
     pool_manager = urllib3.PoolManager()
 
   if not filter_cmd is None and not isinstance(filter_cmd, list):
     filter_cmd = cast(List[str], [ filter_cmd ])
-  if filter_cmd is None or len(filter_cmd) == 0 or (len(filter_cmd) == 1 and filter_cmd[0] == 'cat'):
-    with open(filename, 'wb') as f:
-      resp = pool_manager.request('GET', url, preload_content=False)
-      shutil.copyfileobj(resp, f)
+  resp = pool_manager.request('GET', url, preload_content=False)
+  if filter_cmd is None or len(filter_cmd) == 0 or (len(filter_cmd) == 1 and filter_cmd[0] == 'cat'):    
+    if mode is None:
+      with open(filename, 'wb') as f:
+        shutil.copyfileobj(resp, f)
+    else:
+      with open(
+            os.open(filename, os.O_CREAT | os.O_WRONLY, mode),
+            'wb',
+          ) as f:
+        shutil.copyfileobj(resp, f)
   else:
     with tempfile.NamedTemporaryFile(dir=get_tmp_dir()) as f3:
-      resp = pool_manager.request('GET', url, preload_content=False)
+      # NOTE: permissions on NamedTemporaryFile are 0o600 so we don't need to worry
+      #       about mode bits on the temp file
       shutil.copyfileobj(resp, f3)
       f3.flush()
       # NOTE: following won't work on windows; see https://code.djangoproject.com/wiki/NamedTemporaryFile
       with open(f3.name, 'rb') as f1:
-        with open(filename, 'wb') as f2:
-          subprocess.check_call(filter_cmd, stdin=f1, stdout=f2)
+        if mode is None:
+          with open(filename, 'wb') as f2:
+            subprocess.check_call(filter_cmd, stdin=f1, stdout=f2)
+        else:
+          with open(
+                os.open(filename, os.O_CREAT | os.O_WRONLY, mode),
+                'wb',
+              ) as f2:
+            subprocess.check_call(filter_cmd, stdin=f1, stdout=f2)
+  if not uid is None or not gid is None:
+    if uid is None or gid is None:
+      st = os.stat(filename)
+      if uid is None:
+        uid = st.st_uid
+      if gid is None:
+        gid = st.st_gid
+    os.chown(filename, uid, gid)
+
 
 def running_as_root() -> bool:
   return os.geteuid() == 0
