@@ -13,17 +13,20 @@ repository = "https://github.com/sammck/project-init-tools.git"
 python = "^3.8"
 colorama = "^0.4.4"
 packaging = "^21.3" # used for version string comparison
-PyYAML = ">=5.4.1 <7.0.0"
+#PyYAML = ">=5.4.1 <7.0.0"
+PyYAML = ">=5.4.1"
 "ruamel.yaml" = "^0.17.21"
 tomlkit = "^0.10.1"
 boto3 = "^1.21.37"
+pip = "^22.3"
 
 [tool.poetry.dev-dependencies]
 mypy = "^0.931"
 dunamai = "^1.9.0"
 python-semantic-release = "^7.25.2"
 types-urllib3 = "^1.26.11"
-types-PyYAML = ">=5.4.12 <7.0.0"
+#types-PyYAML = ">=5.4.12 <7.0.0"
+types-PyYAML = ">=5.4.12"
 pylint = "^2.13.5"
 boto3-stubs = "^1.21.37"
 
