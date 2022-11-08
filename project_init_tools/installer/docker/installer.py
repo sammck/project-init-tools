@@ -243,8 +243,8 @@ def install_docker(force: bool=False):
 
     # HACK: docker does not currently have a repo for ubuntu 22.04 (jammy), but they recommend using
     #   the ubuntu 20.04 (focal) repo.
-    if lsbrelease == "jammy":
-      lsbrelease="focal"
+    # if lsbrelease == "jammy":
+    #   lsbrelease="focal"
 
     update_gpg_keyring(
         "https://download.docker.com/linux/ubuntu/gpg",
