@@ -51,8 +51,12 @@ from ...util import (
 )
 
 
-MIN_DOCKER_CLIENT_VERSION = "20.0.0"
+MIN_DOCKER_CLIENT_VERSION = "24.0.5"
 MIN_DOCKER_SERVER_VERSION = MIN_DOCKER_CLIENT_VERSION
+
+# This is the keyring docker's installation instructions tell you to use.
+# It is not the same directory as normally used by packages, which is /usr/share/keyrings
+DOCKER_KEYRING_FILE = "/etc/apt/keyrings/docker.gpg"
 
 verbose: bool = False
 
@@ -241,20 +245,15 @@ def install_docker(force: bool=False):
     variant = "stable"
     lsbrelease = get_linux_distro_name()
 
-    # HACK: docker does not currently have a repo for ubuntu 22.04 (jammy), but they recommend using
-    #   the ubuntu 20.04 (focal) repo.
-    # if lsbrelease == "jammy":
-    #   lsbrelease="focal"
-
     update_gpg_keyring(
         "https://download.docker.com/linux/ubuntu/gpg",
-        "/usr/share/keyrings/docker-archive-keyring.gpg",
+        DOCKER_KEYRING_FILE,
         filter_cmd=["gpg", "--dearmor"]
       )
 
     update_apt_sources_list(
         "/etc/apt/sources.list.d/docker.list",
-        "/usr/share/keyrings/docker-archive-keyring.gpg",
+        DOCKER_KEYRING_FILE,
         "https://download.docker.com/linux/ubuntu",
         lsbrelease,
         variant)

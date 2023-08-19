@@ -49,6 +49,7 @@ class RoundTripConfig(MutableMapping[str, Any]):
 
   def get_yaml_data(self) -> ruamel.yaml.YAML:
     assert self.is_yaml
+    assert not self._yaml is None
     return self._yaml
 
   @property

@@ -13,10 +13,10 @@ from typing import Optional, Sequence
 from project_init_tools.installer.poetry import install_poetry
 import project_init_tools.installer.poetry.installer
 
-def main(argv: Optional[Sequence[str]]=None):
+def main(argv: Optional[Sequence[str]]=None, prog: Optional[str]=None):
   import argparse
 
-  parser = argparse.ArgumentParser(description='Install or upgrade Python Poetry package manager.')
+  parser = argparse.ArgumentParser(prog=prog, description='Install or upgrade Python Poetry package manager.')
   parser.add_argument('--verbose', '-v', action='store_true', default=False,
                       help='Provide verbose output.')
   parser.add_argument('--force', '-f', action='store_true', default=False,

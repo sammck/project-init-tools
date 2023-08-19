@@ -129,7 +129,6 @@ dmypy.json
 .pyre/
 
 /rst-cheatsheet.rst
-/poetry.lock
 
 /trash/
 .secret-kv/

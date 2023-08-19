@@ -12,10 +12,10 @@ from typing import Optional, Sequence
 # do not use relative imports
 from project_init_tools.installer.aws_cli import install_aws_cli
 
-def main(argv: Optional[Sequence[str]]=None):
+def main(argv: Optional[Sequence[str]]=None, prog: Optional[str]=None):
   import argparse
 
-  parser = argparse.ArgumentParser(description='Install or upgrade AWS CLI.')
+  parser = argparse.ArgumentParser(prog=prog, description='Install or upgrade AWS CLI.')
   parser.add_argument('--force', '-f', action='store_true', default=False,
                       help='Force installation even if not required.')
 

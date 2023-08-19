@@ -13,10 +13,10 @@ from typing import Optional, Sequence
 from project_init_tools.installer.docker_compose import install_docker_compose as install
 import project_init_tools.installer.docker_compose.installer as installer
 
-def main(argv: Optional[Sequence[str]]=None):
+def main(argv: Optional[Sequence[str]]=None, prog: Optional[str]=None):
   import argparse
 
-  parser = argparse.ArgumentParser(description='Install or upgrade docker-compose.')
+  parser = argparse.ArgumentParser(prog=prog, description='Install or upgrade docker-compose.')
   parser.add_argument('--verbose', '-v', action='store_true', default=False,
                       help='Provide verbose output.')
   parser.add_argument('--force', '-f', action='store_true', default=False,

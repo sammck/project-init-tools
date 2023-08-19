@@ -13,10 +13,10 @@ from typing import Optional, Sequence
 from project_init_tools.installer.pulumi import default_pulumi_dir, install_pulumi
 import project_init_tools.installer.pulumi.installer
 
-def main(argv: Optional[Sequence[str]]=None):
+def main(argv: Optional[Sequence[str]]=None, prog: Optional[str]=None):
   import argparse
 
-  parser = argparse.ArgumentParser(description='Install or upgrade Python Poetry package manager.')
+  parser = argparse.ArgumentParser(prog=prog, description='Install or upgrade Python Poetry package manager.')
   parser.add_argument(
       '--verbose', '-v', action='store_true', default=False,
       help='Provide verbose output.'

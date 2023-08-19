@@ -44,12 +44,13 @@ from ...util import (
 
 from ...github_util import get_github_project_latest_release_tag
 
-MIN_DOCKER_COMPOSE_VERSION = "2.4.1"
+MIN_DOCKER_COMPOSE_VERSION = "2.20.2"
 
 verbose: bool = False
 
 home_dir = os.path.expanduser("~")
 default_docker_compose_bin_dir = os.path.join(home_dir, '.local', 'bin')
+default_docker_plugin_dir = os.path.join(home_dir, '.docker', 'cli-plugins')
 default_docker_compose_cmd = os.path.join(default_docker_compose_bin_dir, 'docker-compose')
 
 @run_once
@@ -113,8 +114,42 @@ def get_docker_compose_version(dirname: Optional[str]=None) -> str:
     version = version[1:]
   return version
 
+def create_docker_compose_symlink(
+      dirname: Optional[str]=None,
+      plugin_path: Optional[str]=None,
+      plugin_dirname: Optional[str]=None
+    ) -> str:
+  if dirname is None:
+    dirname = default_docker_compose_bin_dir
+  dirname = os.path.abspath(os.path.expanduser(dirname))
+  if plugin_dirname is None:
+    plugin_dirname = default_docker_plugin_dir
+  plugin_dirname = os.path.abspath(os.path.expanduser(plugin_dirname))
+  if plugin_path is None:
+    plugin_path = os.path.join(plugin_dirname, 'docker-compose')
+  if not os.path.exists(plugin_path):
+    raise FileNotFoundError(f"docker-compose plugin not found at {plugin_path}")
+  symlink_path = os.path.join(dirname, 'docker-compose')
+  if symlink_path == plugin_path:
+    print(f"docker-compose plugin directly installed at {symlink_path}; no symlink needed", file=sys.stderr)
+  if os.path.exists(symlink_path):
+    if os.path.islink(symlink_path):
+      if os.readlink(symlink_path) == plugin_path:
+        print(f"docker-compose symlink already installed at {symlink_path} and points to {plugin_path}; no action needed", file=sys.stderr)
+        return symlink_path
+      print(f"docker-compose symlink installed at {symlink_path} points to wrong plugin path {plugin_path}; replacing", file=sys.stderr)
+      os.unlink(symlink_path)
+    else:
+      print(f"docker-compose symlink location {symlink_path} is not a symlink; replacing with symlink", file=sys.stderr)
+      os.unlink(symlink_path)
+  else:
+    print(f"docker-compose symlink not installed at {symlink_path}; installing", file=sys.stderr)
+  os.symlink(plugin_path, symlink_path)
+  return symlink_path
+
 def install_docker_compose(
       dirname:Optional[str] = None,
+      plugin_dirname: Optional[str] = None,
       min_version: Optional[str] = None,
       upgrade_version: Optional[str] = None,
       force: bool = False,
@@ -124,8 +159,11 @@ def install_docker_compose(
 
   Args:
       dirname (Optional[str], optional):
-                       The directory where docker-compose should be installed. If None, "$HOME/.local/bin"
-                      will be used. Defaults to None.
+                      The directory where the docker-compose symlink should be installed. If None, "$HOME/.local/bin"
+                      will be used. If the same as plugin_dirname, then no symlink will be installed. Defaults to None.
+      plugin_dirname (Optional[str], optional):
+                      The directory where the docker-compose CLI plugin should be installed. If None, "$HOME/.docker/cli-plugins"
+                      will be used. If the same as dirname, then no symlink will be installed. Defaults to None.
       min_version (Optional[str], optional):
                        The minimum installed version before an upgrade will be forced. If 'latest',
                        then the latest version will be installed. If None,any installed version is
@@ -148,8 +186,12 @@ def install_docker_compose(
   if dirname is None:
     dirname = default_docker_compose_bin_dir
   dirname = os.path.abspath(os.path.expanduser(dirname))
+  if plugin_dirname is None:
+    plugin_dirname = default_docker_plugin_dir
+  plugin_dirname = os.path.abspath(os.path.expanduser(plugin_dirname))
   if upgrade_version == 'latest':
     upgrade_version = None
+
   if min_version == 'latest':
     min_version = get_docker_compose_latest_version()
 
@@ -178,6 +220,9 @@ def install_docker_compose(
     if not min_version is None and not check_version_ge(upgrade_version, min_version):
       raise RuntimeError(f"Requested docker-compose upgrade version {upgrade_version} is less than than minimum required version {min_version}")
 
-  result = download_docker_compose(dirname, version=upgrade_version, stderr=stderr)
-  print(f"docker-compose cli version {upgrade_version} successfully installed in {dirname}.", file=stderr)
+  plugin_path = download_docker_compose(plugin_dirname, version=upgrade_version, stderr=stderr)
+  print(f"docker-compose plugin version {upgrade_version} successfully installed in {plugin_path}.", file=stderr)
+  result = create_docker_compose_symlink(dirname=dirname, plugin_path=plugin_path, plugin_dirname=plugin_dirname)
+
+  print(f"docker-compose cli version {upgrade_version} successfully installed in {result}.", file=stderr)
   return result, True

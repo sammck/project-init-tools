@@ -599,7 +599,7 @@ def gen_etc_shadow_password_hash(password: str, salt: Optional[str]=None, num_ch
 
   Returns:
       str: A salted, SHA-512 hash of the password expressed as a string
-           compatible with /etc/shadow. 
+           compatible with /etc/shadow.
   """
   if salt is None:
     salt = gen_etc_shadow_password_salt(num_chars)
@@ -681,9 +681,23 @@ def get_aws_identity(s: Optional[BotoAwsSession]=None) -> Dict[str, str]:
   return result
 
 def get_aws_account(s: Optional[BotoAwsSession]=None) -> str:
+  """Fetches the AWS account number associated with an AWS session.
+
+  Args:
+      s (BotoAwsSession): The AWS session in question, or None to create a default session.
+                          Defaults to None.
+  """
   return get_aws_identity(s)['Account']
 
 def get_aws_region(s: Optional[BotoAwsSession]=None, default: Optional[str]=None) -> Optional[str]:
+  """Fetches the AWS region associated with an AWS session.
+
+  Args:
+      s (BotoAwsSession): The AWS session in question, or None to create a default session.
+                          Defaults to None.
+      default (Optional[str], optional):
+                          The default region to use if the session does not have a region.
+  """
   s = get_aws_session(s)
   result: Optional[str] = s.region_name
   if result is None:
@@ -704,12 +718,24 @@ def check_version_ge(version1: str, version2: str) -> bool:
   return version.parse(version1) >= version.parse(version2)
 
 def searchpath_split(searchpath: Optional[str]=None) -> List[str]:
+  """Splits a ':'-delimited search path string into a list of directories
+
+  Omits empty directory names due to extraneous colons.
+
+  Args:
+      searchpath (str): A ':'-delimited search path string, or None
+                        to use os.environ['PATH']. Defaults to None.
+
+  Returns:
+      List[str]: A list of directory names, with no empty strings
+  """
   if searchpath is None:
     searchpath = os.environ['PATH']
   result = [ x for x in searchpath.split(os.pathsep) if x != '' ]
   return result
 
 def searchpath_join(dirnames: List[str]) -> str:
+  """Joins a list of directories into a ':'-delimited search path string"""
   return os.pathsep.join(dirnames)
 
 def searchpath_normalize(searchpath: Optional[str]=None) -> str:
@@ -717,7 +743,8 @@ def searchpath_normalize(searchpath: Optional[str]=None) -> str:
   a search path string.
 
   Args:
-      searchpath (str): A search path string similar to $PATH
+      searchpath (str): A ':'-delimited search path string, or None
+                        to use os.environ['PATH']. Defaults to None.
 
   Returns:
       str: The search path string with extraneous seperators removed
@@ -725,29 +752,151 @@ def searchpath_normalize(searchpath: Optional[str]=None) -> str:
   return searchpath_join(searchpath_split(searchpath))
 
 def searchpath_parts_contains_dir(parts: List[str], dirname: str) -> bool:
+  """Returns True if a direcory name is in a list of directories.
+
+  The directory name is normalized to an absolute path before comparison;
+  the assumption is that the relevant list of directories is also normalized to contain
+  absolute paths.
+
+  Args:
+      parts (List[str]): A list of directory names, normalized to absolute paths
+      dirname (str): A directory name, which will be normalized to an absolute path
+
+  Returns:
+      bool: True if the directory name after normalization is in the list of directories
+  """
   dirname = os.path.abspath(os.path.normpath(os.path.expanduser(dirname)))
   return dirname in parts
 
 def searchpath_contains_dir(searchpath: Optional[str], dirname: str) -> bool:
+  """Returns True if a direcory name is in a ':'-delimited search path.
+
+  The directory name is normalized to an absolute path before comparison;
+  the assumption is that the relevant directories in the search path are also normalized to
+  absolute paths.
+
+  Args:
+      searchpath (str): A ':'-delimited search path string, or None
+                        to use os.environ['PATH'].
+      dirname (str): A directory name, which will be normalized to an absolute path
+
+  Returns:
+      bool: True if the directory name after normalization is in the list of directories
+  """
   return searchpath_parts_contains_dir(searchpath_split(searchpath), dirname)
 
 def searchpath_parts_remove_dir(parts: List[str], dirname: str) -> List[str]:
+  """Removes a directory name from a list of directories.
+
+  The directory name is normalized to an absolute path before comparison;
+  the assumption is that the relevant list of directories is also normalized to contain
+  absolute paths.
+
+  Has no effect if the directory name is not in the list of directories.
+  If the directory name is present multiple times, all instances are removed.
+
+  Args:
+      parts (List[str]): A list of directory names, normalized to absolute paths
+      dirname (str): A directory name, which will be normalized to an absolute path
+
+  Returns:
+      List[str]: A list of directory names, with the specified directory removed
+                 if it was present in the original list.
+  """
   dirname = os.path.abspath(os.path.normpath(os.path.expanduser(dirname)))
   result = [ x for x in parts if x != dirname ]
   return result
 
 def searchpath_remove_dir(searchpath: Optional[str], dirname: str) -> str:
+  """Removes a directory name from a ':'-delimited search path.
+
+  The directory name is normalized to an absolute path before comparison;
+  the assumption is that the relevant directories in the search path are
+  also normalized to absolute paths.
+
+  Has no effect if the directory name is not in the search path.
+  If the directory name is present multiple times, all instances are removed.
+
+  The resulting search path will have extraneous ':' delimeters removed.
+
+  Args:
+      searchpath (str): A ':'-delimited search path string, or None
+                        to use os.environ['PATH'].
+      dirname (str): A directory name, which will be normalized to an absolute path
+
+  Returns:
+      str: The resulting search path, with the specified directory removed
+                 if it was present in the original list. Extraneous ':' delimeters
+                 are removed.
+  """
   return searchpath_join(searchpath_parts_remove_dir(searchpath_split(searchpath), dirname))
 
 def searchpath_parts_prepend(parts: List[str], dirname: str) -> List[str]:
+  """Prepends a directory name to a list of directories.
+
+  The directory name is normalized to an absolute path before comparison;
+  the assumption is that the relevant list of directories is also normalized to contain
+  absolute paths.
+
+  If the directory name is already in the list of directories, all instances are removed
+  before prepending the directory name. This has the effect of moving the directory name
+  to the front of the list. Hence, this function always results in the directory name
+  being the first element of the list, which is consistent with expectations in
+  search paths.
+
+  Args:
+      parts (List[str]): A list of directory names, normalized to absolute paths
+      dirname (str): A directory name, which will be normalized to an absolute path
+
+  Returns:
+      List[str]: A list of directory names, with the normalized directory name appearing
+                 exactly once at the beginning of the list.
+  """
   dirname = os.path.abspath(os.path.normpath(os.path.expanduser(dirname)))
   result = [dirname] + searchpath_parts_remove_dir(parts, dirname)
   return result
 
 def searchpath_prepend(searchpath: Optional[str], dirname: str) -> str:
+  """Prepends a directory name to a ':'-delimited search path.
+
+  The directory name is normalized to an absolute path before comparison;
+  the assumption is that the relevant list of directories is also normalized to contain
+  absolute paths.
+
+  If the directory name is already in the search path, all instances are removed
+  before prepending the directory name. This has the effect of moving the directory name
+  to the front of the search path. Hence, this function always results in the directory name
+  being the first directory searched.
+
+  Args:
+      searchpath (str): A ':'-delimited search path string, or None
+                        to use os.environ['PATH'].
+      dirname (str): A directory name, which will be normalized to an absolute path
+
+  Returns:
+      str: The resulting search path, with the normalized directory name appearing
+           exactly once at the beginning of the search path.
+  """
   return searchpath_join(searchpath_parts_prepend(searchpath_split(searchpath), dirname))
 
 def searchpath_parts_prepend_if_missing(parts: List[str], dirname: str) -> List[str]:
+  """Prepends a directory name to a list of directories if it is not already in the list.
+
+  The directory name is normalized to an absolute path before comparison;
+  the assumption is that the relevant list of directories is also normalized to contain
+  absolute paths.
+
+  If the directory name is already in the list of directories, does nothing.
+  Otherwise, creates a new list with the normalized directory name at the beginning.
+
+  Args:
+      parts (List[str]): A list of directory names, normalized to absolute paths
+      dirname (str): A directory name, which will be normalized to an absolute path
+
+  Returns:
+      List[str]: A list of directory names, with the normalized directory name appearing
+                 at least once, and at the beginning of the list if it was added.
+  """
   dirname = os.path.abspath(os.path.normpath(os.path.expanduser(dirname)))
   if dirname in parts:
     result = parts[:]
@@ -756,17 +905,95 @@ def searchpath_parts_prepend_if_missing(parts: List[str], dirname: str) -> List[
   return result
 
 def searchpath_prepend_if_missing(searchpath: Optional[str], dirname: str) -> str:
+  """Prepends a directory name to a ':'-delimited search path if it is not already in the search path.
+
+  The directory name is normalized to an absolute path before comparison;
+  the assumption is that the relevant list of directories is also normalized to contain
+  absolute paths.
+
+  If the directory name is already in the search path, does nothing.
+  Otherwise, creates a new search path with the normalized directory name at the beginning.
+
+  Args:
+      searchpath (str): A ':'-delimited search path string, or None
+                        to use os.environ['PATH'].
+      dirname (str): A directory name, which will be normalized to an absolute path
+
+  Returns:
+      str: The resulting search path, with the normalized directory name appearing
+           at least once, and at the beginning of the search path if it was added.
+  """
   return searchpath_join(searchpath_parts_prepend_if_missing(searchpath_split(searchpath), dirname))
 
 def searchpath_parts_force_append(parts: List[str], dirname: str) -> List[str]:
+  """Appends a directory name to a list of directories or forces it to the end if it is already in the list.
+
+  The directory name is normalized to an absolute path before comparison;
+  the assumption is that the relevant list of directories is also normalized to contain
+  absolute paths.
+
+  If the directory name is already in the list of directories, all instances are removed
+  before appending the directory name. This has the effect of moving the directory name
+  to the end of the list. Hence, this function always results in the directory name
+  being the last element of the list.
+
+  Args:
+      parts (List[str]): A list of directory names, normalized to absolute paths
+      dirname (str): A directory name, which will be normalized to an absolute path
+
+  Returns:
+      List[str]: A list of directory names, with the normalized directory name appearing
+                 exactly once at the end of the list.
+  """
   dirname = os.path.abspath(os.path.normpath(os.path.expanduser(dirname)))
   result = searchpath_parts_remove_dir(parts, dirname) + [dirname]
   return result
 
 def searchpath_force_append(searchpath: Optional[str], dirname: str) -> str:
+  """Appends a directory name to a ':'-delimited search path, or forces it to the
+     end if it is already in the search path.
+
+  The directory name is normalized to an absolute path before comparison;
+  the assumption is that the relevant list of directories is also normalized to contain
+  absolute paths.
+
+  If the directory name is already in the search path, all instances are removed
+  before appending the directory name. This has the effect of moving the directory name
+  to the end of the search path. Hence, this function always results in the directory name
+  being the last directory searched.
+
+  Args:
+      searchpath (str): A ':'-delimited search path string, or None
+                        to use os.environ['PATH'].
+      dirname (str): A directory name, which will be normalized to an absolute path
+
+  Returns:
+      str: The resulting search path, with the normalized directory name appearing
+           exactly once at the end of the search path.
+  """
   return searchpath_join(searchpath_parts_force_append(searchpath_split(searchpath), dirname))
 
 def searchpath_parts_append(parts: List[str], dirname: str) -> List[str]:
+  """Appends a directory name to a list of directories if it is not already present.
+
+  The directory name is normalized to an absolute path before comparison;
+  the assumption is that the relevant list of directories is also normalized to contain
+  absolute paths.
+
+  If the directory name is already in the list of directories, does nothing.
+  Otherwise, creates a new list with the directory name added to the end.
+  This has the effect of ensuring the directory will be searched, but never lowering
+  its search priority from an existing position, which is consistent with expectations
+  for search paths.
+
+  Args:
+      parts (List[str]): A list of directory names, normalized to absolute paths
+      dirname (str): A directory name, which will be normalized to an absolute path
+
+  Returns:
+      List[str]: A list of directory names, with the normalized directory name appearing
+                 at least once, and at the end of the list if added.
+  """
   dirname = os.path.abspath(os.path.normpath(os.path.expanduser(dirname)))
   if dirname in parts:
     result = parts[:]
@@ -775,6 +1002,27 @@ def searchpath_parts_append(parts: List[str], dirname: str) -> List[str]:
   return result
 
 def searchpath_append(searchpath: Optional[str], dirname: str) -> str:
+  """Appends a directory name to a ':'-delimited search path if it is not already present.
+
+  The directory name is normalized to an absolute path before comparison;
+  the assumption is that the relevant list of directories is also normalized to contain
+  absolute paths.
+
+  If the directory name is already in the search path, does nothing.
+  Otherwise, creates a new search path with the normalized directory on the end.
+  This has the effect of ensuring the directory will be searched, but never lowering
+  its search priority from an existing position, which is consistent with expectations
+  for search paths.
+
+  Args:
+      searchpath (str): A ':'-delimited search path string, or None
+                        to use os.environ['PATH'].
+      dirname (str): A directory name, which will be normalized to an absolute path
+
+  Returns:
+      str: The resulting search path, with the normalized directory name appearing
+           at least once, and at the end of the search path if added.
+  """
   return searchpath_join(searchpath_parts_append(searchpath_split(searchpath), dirname))
 
 def get_current_architecture() -> str:
@@ -786,14 +1034,17 @@ def get_current_system() -> str:
   return platform.system()
 
 def get_gid_of_group(group: str) -> int:
+  """Returns the GID of a group name"""
   gi = grp.getgrnam(group)
   return gi.gr_gid
 
 def get_group_of_gid(gid: int) -> str:
+  """Returns the name of a group given its GID"""
   gi = grp.getgrgid(gid)
   return gi.gr_name
 
 def gid_exists(gid: int) -> bool:
+  """Returns True if a group with the specified GID exists"""
   result = False
   try:
     get_group_of_gid(gid)
@@ -803,6 +1054,7 @@ def gid_exists(gid: int) -> bool:
   return result
 
 def get_file_hash_hex(filename: str) -> str:
+  """Returns the SHA256 hash of a file as a hex string"""
   h = hashlib.sha256()
   with open(filename, 'rb') as f:
     while True:
@@ -813,12 +1065,14 @@ def get_file_hash_hex(filename: str) -> str:
   return h.hexdigest()
 
 def files_are_identical(filename1: str, filename2: str, quick: bool=False) -> bool:
+  """Returns True if two files are identical"""
   return filecmp.cmp(filename1, filename2, shallow=quick)
 
 def download_url_text(
       url: str,
       pool_manager: Optional[urllib3.PoolManager]=None,
     ) -> str:
+  """Returns the content of a text document at an URL as a string"""
   if pool_manager is None:
     pool_manager = urllib3.PoolManager()
   resp = cast(urllib3.HTTPResponse, pool_manager.request('GET', url, preload_content=False))
@@ -828,6 +1082,7 @@ def download_url_bytes(
       url: str,
       pool_manager: Optional[urllib3.PoolManager]=None,
     ) -> bytes:
+  """Returns the content of a binary document at an URL as a bytes object"""
   if pool_manager is None:
     pool_manager = urllib3.PoolManager()
   resp = cast(urllib3.HTTPResponse, pool_manager.request('GET', url, preload_content=False))
@@ -842,13 +1097,37 @@ def download_url_file(
       uid: Optional[int] = None,
       gid: Optional[int] = None,
     ) -> None:
+  """Downloads a file from an URL to a local file.
+
+  sudo is not used; the file is written with the current user's permissions.
+
+  Args:
+      url (str): The URL to download from
+      filename (str): The local filename to download to
+      pool_manager (Optional[urllib3.PoolManager], optional):
+              An optional urllib3 PoolManager to use for the download.
+              Defaults to None, in which case a default PoolManager is used.
+      filter_cmd (Optional[Union[str, List[str]]], optional):
+              An optional command to pipe the downloaded file through before
+              writing it to disk. Defaults to None, in which case the file is
+              written directly to disk.
+      mode (Optional[int], optional):
+              Optional file mode bits (see chmod) to use when creating the local file. Defaults to None,
+              in which case the default mode bits are used.
+      uid (Optional[int], optional):
+              Optional user ID (see chown) to use when creating the local file. Defaults to None,
+              in which case the default user ID is used.
+      gid (Optional[int], optional):
+              Optional group ID (see chown) to use when creating the local file. Defaults to None,
+              in which case the default group ID is used.
+  """
   if pool_manager is None:
     pool_manager = urllib3.PoolManager()
 
   if not filter_cmd is None and not isinstance(filter_cmd, list):
     filter_cmd = cast(List[str], [ filter_cmd ])
   resp = pool_manager.request('GET', url, preload_content=False)
-  if filter_cmd is None or len(filter_cmd) == 0 or (len(filter_cmd) == 1 and filter_cmd[0] == 'cat'):    
+  if filter_cmd is None or len(filter_cmd) == 0 or (len(filter_cmd) == 1 and filter_cmd[0] == 'cat'):
     if mode is None:
       with open(filename, 'wb') as f:
         shutil.copyfileobj(resp, f)
@@ -894,6 +1173,10 @@ def sudo_warn(
       stderr: Optional[_FILE] = None,
       sudo_reason: Optional[str] = None,
     ):
+  """Prints a warning message that sudo is required the first time it is needed.
+
+  Does nothing if not the first time called.
+  """
   errout = stderr if isinstance(stderr, TextIO) else sys.stderr
   if sudo_reason is None:
     sudo_reason = f"command: {args!r}"
@@ -907,6 +1190,32 @@ def _sudo_fix_args(
       run_with_group: Optional[str] = None,
       sudo_reason: Optional[str] = None,
     ) -> _CMD:
+  """Modifies a command intended to be run with subprocess.Popen to use sudo if needed.
+
+  Args:
+      args (_CMD):
+          The command to run, as a list of strings or a string.
+      stderr (Optional[_FILE], optional):
+          The destination for stderr output, or None to use sys.stderr. Defaults to None.
+      shell (bool, optional):
+          True if command is a shell string rather than raw args. Defaults to False.
+      use_sudo (bool, optional):
+          True if sudo is required. Defaults to True.
+      run_with_group (Optional[str], optional):
+          An optional group name that this user needs to be in to run the command.
+          Useful for situations in which the user has been added to a group but the
+          login session needs to be restarted before the changes will be visible. If
+          this is the case, this function will modify the command to use "sudo -E -u <username>"
+          to run the command in a new login session. May cause sudo to be used even if
+          use_sudo is False. Defaults to None.
+      sudo_reason (Optional[str], optional):
+          If use_sudo is True, a description of why sudo is required. If this is
+          the first time sudo is required, a message will be displayed to the user
+          understands why they need to type in their sudo password. Defaults to None.
+
+  Returns:
+      _CMD: The modified command suitable for subprocess.POpen, as a list of strings or a string.
+  """
   if shell:
     if isinstance(args, list):
       raise RuntimeError(f"Arglist not allowed with shell=True: {args}")
@@ -954,6 +1263,26 @@ def sudo_Popen(
       run_with_group: Optional[str] = None,
       sudo_reason: Optional[str] = None,
     ) -> subprocess.Popen:
+  """Run subprocess.Popen with sudo if needed.
+
+  Args:
+      use_sudo (bool, optional):
+          True if sudo is required. Defaults to True.
+      run_with_group (Optional[str], optional):
+          An optional group name that this user needs to be in to run the command.
+          Useful for situations in which the user has been added to a group but the
+          login session needs to be restarted before the changes will be visible. If
+          this is the case, this function will modify the command to use "sudo -E -u <username>"
+          to run the command in a new login session. May cause sudo to be used even if
+          use_sudo is False. Defaults to None.
+      sudo_reason (Optional[str], optional):
+          If use_sudo is True, a description of why sudo is required. If this is
+          the first time sudo is required, a message will be displayed to the user
+          understands why they need to type in their sudo password. Defaults to None.
+
+      <other args>:
+          See subprocess.Popen for details.
+      """
   args = _sudo_fix_args(
       args,
       stderr=stderr,
@@ -1009,6 +1338,26 @@ def sudo_call(
       run_with_group: Optional[str] = None,
       sudo_reason: Optional[str] = None,
     ) -> int:
+  """Run subprocess.call with sudo if needed.
+
+  Args:
+      use_sudo (bool, optional):
+          True if sudo is required. Defaults to True.
+      run_with_group (Optional[str], optional):
+          An optional group name that this user needs to be in to run the command.
+          Useful for situations in which the user has been added to a group but the
+          login session needs to be restarted before the changes will be visible. If
+          this is the case, this function will modify the command to use "sudo -E -u <username>"
+          to run the command in a new login session. May cause sudo to be used even if
+          use_sudo is False. Defaults to None.
+      sudo_reason (Optional[str], optional):
+          If use_sudo is True, a description of why sudo is required. If this is
+          the first time sudo is required, a message will be displayed to the user
+          understands why they need to type in their sudo password. Defaults to None.
+
+      <other args>:
+          See subprocess.call for details.
+      """
   args = _sudo_fix_args(
       args,
       stderr=stderr,
@@ -1062,6 +1411,26 @@ def sudo_check_call(
       run_with_group: Optional[str] = None,
       sudo_reason: Optional[str] = None,
     ) -> int:
+  """Run subprocess.check_call with sudo if needed.
+
+  Args:
+      use_sudo (bool, optional):
+          True if sudo is required. Defaults to True.
+      run_with_group (Optional[str], optional):
+          An optional group name that this user needs to be in to run the command.
+          Useful for situations in which the user has been added to a group but the
+          login session needs to be restarted before the changes will be visible. If
+          this is the case, this function will modify the command to use "sudo -E -u <username>"
+          to run the command in a new login session. May cause sudo to be used even if
+          use_sudo is False. Defaults to None.
+      sudo_reason (Optional[str], optional):
+          If use_sudo is True, a description of why sudo is required. If this is
+          the first time sudo is required, a message will be displayed to the user
+          understands why they need to type in their sudo password. Defaults to None.
+
+      <other args>:
+          See subprocess.check_call for details.
+      """
   args = _sudo_fix_args(
       args,
       stderr=stderr,
@@ -1116,6 +1485,26 @@ def sudo_check_output(
       run_with_group: Optional[str] = None,
       sudo_reason: Optional[str] = None,
     ) -> Union[str, bytes]:
+  """Run subprocess.check_output with sudo if needed.
+
+  Args:
+      use_sudo (bool, optional):
+          True if sudo is required. Defaults to True.
+      run_with_group (Optional[str], optional):
+          An optional group name that this user needs to be in to run the command.
+          Useful for situations in which the user has been added to a group but the
+          login session needs to be restarted before the changes will be visible. If
+          this is the case, this function will modify the command to use "sudo -E -u <username>"
+          to run the command in a new login session. May cause sudo to be used even if
+          use_sudo is False. Defaults to None.
+      sudo_reason (Optional[str], optional):
+          If use_sudo is True, a description of why sudo is required. If this is
+          the first time sudo is required, a message will be displayed to the user
+          understands why they need to type in their sudo password. Defaults to None.
+
+      <other args>:
+          See subprocess.check_output for details.
+      """
   args = _sudo_fix_args(
       args,
       stderr=stderr,
@@ -1228,6 +1617,35 @@ def sudo_check_output_stderr_exception(
       sudo_reason: Optional[str] = None,
       text: Optional[bool] = None,
     ) -> Union[str, bytes]:
+  """Run subprocess.check_output with sudo if needed, capturing stderr output in the error detail.
+
+  If an error occurs, the captured stderr output is included in the exception message.
+
+  Args:
+      stderr (Optional[_FILE], optional):
+          Ignored.  Included only for compatibility with subprocess.check_output.
+      use_sudo (bool, optional):
+          True if sudo is required. Defaults to True.
+      run_with_group (Optional[str], optional):
+          An optional group name that this user needs to be in to run the command.
+          Useful for situations in which the user has been added to a group but the
+          login session needs to be restarted before the changes will be visible. If
+          this is the case, this function will modify the command to use "sudo -E -u <username>"
+          to run the command in a new login session. May cause sudo to be used even if
+          use_sudo is False. Defaults to None.
+      sudo_reason (Optional[str], optional):
+          If use_sudo is True, a description of why sudo is required. If this is
+          the first time sudo is required, a message will be displayed to the user
+          understands why they need to type in their sudo password. Defaults to None.
+
+      <other args>:
+          See subprocess.check_output for details.
+
+      Raises:
+          CalledProcessErrorWithStderrMessage:
+              A subclass of CalledProcessError. If the command fails, this exception is raised.
+              The exception includes the captured stderr output in the exception message.
+      """
   args = _sudo_fix_args(
       args,
       stderr=stderr,
@@ -1294,6 +1712,35 @@ def sudo_check_call_stderr_exception(
       run_with_group: Optional[str] = None,
       sudo_reason: Optional[str] = None,
     ) -> int:
+  """Run subprocess.check_call with sudo if needed, capturing stderr output in the error detail.
+
+  If an error occurs, the captured stderr output is included in the exception message.
+
+  Args:
+      stderr (Optional[_FILE], optional):
+          Ignored.  Included only for compatibility with subprocess.check_output.
+      use_sudo (bool, optional):
+          True if sudo is required. Defaults to True.
+      run_with_group (Optional[str], optional):
+          An optional group name that this user needs to be in to run the command.
+          Useful for situations in which the user has been added to a group but the
+          login session needs to be restarted before the changes will be visible. If
+          this is the case, this function will modify the command to use "sudo -E -u <username>"
+          to run the command in a new login session. May cause sudo to be used even if
+          use_sudo is False. Defaults to None.
+      sudo_reason (Optional[str], optional):
+          If use_sudo is True, a description of why sudo is required. If this is
+          the first time sudo is required, a message will be displayed to the user
+          understands why they need to type in their sudo password. Defaults to None.
+
+      <other args>:
+          See subprocess.check_call for details.
+
+      Raises:
+          CalledProcessErrorWithStderrMessage:
+              A subclass of CalledProcessError. If the command fails, this exception is raised.
+              The exception includes the captured stderr output in the exception message.
+      """
   args = _sudo_fix_args(
       args,
       stderr=stderr,
@@ -1339,16 +1786,19 @@ def chown_root(filename: str, sudo_reason: Optional[str]=None):
 
 @run_once
 def get_linux_distro_name() -> str:
+  """Returns the current Linux distribution name, e.g. 'jammy'."""
   result = subprocess.check_output(['lsb_release', '-cs'])
   linux_distro = result.decode('utf-8').rstrip()
   return linux_distro
 
 def file_contents(filename: str) -> str:
+  """Returns the contents of a text file as a string."""
   with open(filename, encoding='utf-8') as f:
     result = f.read()
   return result
 
 def pathname_is_executable(pathname: str) -> bool:
+  """Returns True if pathname is an existing file that is executable by the current user."""
   return os.path.isfile(pathname) and os.access(pathname, os.X_OK)
 
 def find_commands_in_path(
@@ -1356,6 +1806,37 @@ def find_commands_in_path(
       searchpath: Optional[str]=None,
       cwd: Optional[str]=None
     ) -> Generator[str, None, None]:
+  """Searches for all occurences of an executable command in the search path.
+
+  Identical to the way the shell searches for non-builtin commands:
+
+     1. If cmd contains a path separator ('/'), it is simply checked for existence
+        and executability.
+     2. Otherwise, each directory in the search path is checked for
+        existence of a file named cmd. If the file is found and is
+        executable, the full path to the executable is yielded.
+
+  There may be multiple matches. An ordered sequence of matching
+  absolute pathnames is generated. The first yielded path is the
+  first matching executable found in the search path, which is the
+  one the shell would use.
+
+  If no matching executable is found, no paths are yielded.
+
+
+  Args:
+      cmd (str):
+          The name of the command to search for.
+      searchpath (str):
+          A ':'-delimited search path string, or None
+          to use os.environ['PATH']. Defaults to None.
+      cwd (Optional[str], optional):
+          The working directory from which to resolve relative pathnames, or
+          None to use the current working directory. Defaults to None.
+
+  Yields:
+      str: An absolute path to a matching executable
+  """
   if cwd is None:
     cwd = '.'
   cwd = os.path.abspath(os.path.expanduser(cwd))
@@ -1371,12 +1852,27 @@ def find_commands_in_path(
       yield fq_cmd
 
 def get_virtualenv() -> Optional[str]:
+  """Returns the path to the current Python virtualenv, or None if not in a virtualenv."""
   result = sys.prefix
   if result == sys.base_prefix:
     return None
   return result
 
 def pathname_is_in_dir(pathname: str, dirname: str) -> bool:
+  """Returns True if a pathname refers to a directory or anything under the directory.
+
+  Both pathname and dirname are normalized to absolute paths before comparison.
+
+  Neither the pathname nor the directory referred to by the arguments need exist. Only
+  their pathnames are compared.
+
+  Args:
+      pathname (str): A relative or absolute pathname to check for inclusion in a directory.
+      dirname (str): A relative or absolute pathname to a directory.
+
+  Returns:
+      bool: True if pathname is equal to dirname, or is under dirname.
+  """
   pathname = os.path.abspath(os.path.expanduser(pathname))
   dirname = os.path.abspath(os.path.expanduser(dirname))
   rp = os.path.relpath(pathname, dirname)
@@ -1384,6 +1880,19 @@ def pathname_is_in_dir(pathname: str, dirname: str) -> bool:
   return first_part != '..'
 
 def pathname_is_in_venv(pathname: str) -> bool:
+  """Returns True if a pathname refers to the current virtualenv or anything it.
+
+  If not in a virtualenv, returns False.
+  pathname is normalized to an absolute path before comparison.
+  pathname need not exist. Only the path string is considered.
+
+  Args:
+      pathname (str): A relative or absolute pathname to check for inclusion in the virtualenv.
+
+  Returns:
+      bool: True if currently running in a virtualenv and pathname is equal to the virtualenv,
+            or is under the virtualenv.
+  """
   venv_dir = get_virtualenv()
   return not venv_dir is None and pathname_is_in_dir(pathname, venv_dir)
 
@@ -1392,33 +1901,155 @@ def find_commands_in_path_outside_venv(
       searchpath: Optional[str]=None,
       cwd: Optional[str]=None
     ) -> Generator[str, None, None]:
+  """Searches for an executable command in the search path, excluding commands in the current virtualenv.
+
+  Identical to the way the shell searches for non-builtin commands, except
+  that the current virtualenv is never searched:
+
+     1. If cmd contains a path separator ('/'), it is simply checked for existence
+        and executability and being outside the virtualenv.
+     2. Otherwise, each directory in the search path is checked for
+        existence of a file named cmd. If the file is found and is
+        executable, and is outside the virtualenv, the full path to the executable is yielded.
+
+  If not currently running in a virtualenv, this function is identical to find_commands_in_path.
+
+  There may be multiple matches. An ordered sequence of matching
+  absolute pathnames is generated. The first yielded path is the
+  first matching executable found in the search path, which is the
+  one the shell would use.
+
+  If no matching executable is found, no paths are yielded.
+
+  Args:
+      cmd (str):
+          The name of the command to search for.
+      searchpath (str):
+          A ':'-delimited search path string, or None
+          to use os.environ['PATH']. Defaults to None.
+      cwd (Optional[str], optional):
+          The working directory from which to resolve relative pathnames, or
+          None to use the current working directory. Defaults to None.
+
+  Yields:
+      str: An absolute path to a matching executable that is not in the current virtualenv
+  """
   for fq_cmd in find_commands_in_path(cmd, searchpath=searchpath, cwd=cwd):
     if not pathname_is_in_venv(fq_cmd):
       yield fq_cmd
 
 def find_command_in_path(cmd: str, searchpath: Optional[str]=None, cwd: Optional[str]=None) -> Optional[str]:
+  """Searches for the first occurence of an executable command in the search path.
+
+  Identical to the way the shell searches for non-builtin commands:
+
+     1. If cmd contains a path separator ('/'), it is simply checked for existence
+        and executability and returned as an absolute path.
+     2. Otherwise, each directory in the search path is checked in order for
+        existence of a file named cmd. If the file is found and is
+        executable, the search is ended and the full path to the executable is returned.
+
+  If no matching executable is found, None is returned.
+
+  Args:
+      cmd (str):
+          The name of the command to search for.
+      searchpath (str):
+          A ':'-delimited search path string, or None
+          to use os.environ['PATH']. Defaults to None.
+      cwd (Optional[str], optional):
+          The working directory from which to resolve relative pathnames, or
+          None to use the current working directory. Defaults to None.
+
+  Returns:
+      str: An absolute path to a matching executable
+  """
   for fq_cmd in find_commands_in_path(cmd, searchpath=searchpath, cwd=cwd):
     return fq_cmd
   return None
 
 def find_command_in_path_outside_venv(cmd: str, searchpath: Optional[str]=None, cwd: Optional[str]=None) -> Optional[str]:
+  """Searches for the first occurence of an executable command in the search path, excluding commands in the current virtualenv.
+
+  Identical to the way the shell searches for non-builtin commands, except
+  that the current virtualenv is never searched:
+
+     1. If cmd contains a path separator ('/'), it is simply checked for existence
+        and executability and being outside the virtualenv, and returned as an absolute path.
+     2. Otherwise, each directory in the search path is checked in order for
+        existence of a file named cmd. If the file is found and is
+        executable, and is outside the virtualenv, the search is ended and
+        the full path to the executable is returned.
+
+  If not currently running in a virtualenv, this function is identical to find_command_in_path.
+
+  If no matching executable is found, None is returned.
+
+  Args:
+      cmd (str):
+          The name of the command to search for.
+      searchpath (str):
+          A ':'-delimited search path string, or None
+          to use os.environ['PATH']. Defaults to None.
+      cwd (Optional[str], optional):
+          The working directory from which to resolve relative pathnames, or
+          None to use the current working directory. Defaults to None.
+
+  Yields:
+      str: An absolute path to a matching executable that is not in the current virtualenv
+  """
   for fq_cmd in find_commands_in_path_outside_venv(cmd, searchpath=searchpath, cwd=cwd):
     return fq_cmd
   return None
 
-def command_exists(cmd: str) -> bool:
-  return not find_command_in_path(cmd) is None
+def command_exists(cmd: str, searchpath: Optional[str]=None, cwd: Optional[str]=None) -> bool:
+  """Returns True if the command exists in the search path.
+
+  Args:
+      cmd (str):
+          The name of the command to search for.
+      searchpath (str):
+          A ':'-delimited search path string, or None
+          to use os.environ['PATH']. Defaults to None.
+      cwd (Optional[str], optional):
+          The working directory from which to resolve relative pathnames, or
+          None to use the current working directory. Defaults to None.
+
+  Returns:
+      bool: True if the command exists in the search path.
+ """
+  return not find_command_in_path(cmd, searchpath=searchpath, cwd=cwd) is None
 
 def command_exists_outside_venv(cmd: str) -> bool:
+  """Returns True if the command exists in the search path, excluding the current virtualenv.
+
+  If not currently running in a virtualenv, this function is identical to command_exists.
+
+  Args:
+      cmd (str):
+          The name of the command to search for.
+      searchpath (str):
+          A ':'-delimited search path string, or None
+          to use os.environ['PATH']. Defaults to None.
+      cwd (Optional[str], optional):
+          The working directory from which to resolve relative pathnames, or
+          None to use the current working directory. Defaults to None.
+
+  Returns:
+      bool: True if the command exists in the search path, excluding the current virtualenv.
+ """
   return not find_command_in_path_outside_venv(cmd) is None
 
 def get_current_os_user() -> str:
+  """Get the current OS user name."""
   return os.getlogin()
 
 def get_all_os_groups() -> List[str]:
+  """Get a list of all OS group names."""
   return sorted(x.gr_name for x in grp.getgrall())
 
 def os_group_exists(group_name: str) -> bool:
+  """Returns True if the named OS group exists."""
   gid: Optional[int] = None
   try:
     groupinfo = grp.getgrnam(group_name)
@@ -1428,6 +2059,10 @@ def os_group_exists(group_name: str) -> bool:
   return not gid is None
 
 def get_os_groups_of_user(user: Optional[str]=None) -> List[str]:
+  """Returns a list of OS group names for which the user is a member.
+
+  If user is None, the current user is used.
+  """
   if user is None:
     user = get_current_os_user()
   result: List[str] = []
@@ -1437,6 +2072,12 @@ def get_os_groups_of_user(user: Optional[str]=None) -> List[str]:
   return sorted(result)
 
 def get_os_groups_of_current_process() -> List[str]:
+  """Returns a list of OS group names for which the current process is a member.
+
+  Normally this is the same as get_os_groups_of_user(), but if the current user has been
+  added to the group after the current login session started, the current process
+  will not be included in the group, and this function will reflect that.
+  """
   gids = os.getgroups()
   result: List[str] = []
   for group in grp.getgrall():
@@ -1445,14 +2086,44 @@ def get_os_groups_of_current_process() -> List[str]:
   return sorted(result)
 
 def os_group_includes_user(group_name: str, user: Optional[str]=None) -> bool:
+  """Returns True if the named OS group includes the named user.
+
+  If user is None, the current user is used.
+  """
   groups = get_os_groups_of_user(user=user)
   return group_name in groups
 
 def os_group_includes_current_process(group_name: str) -> bool:
+  """Returns True if the named OS group includes the current process.
+
+  Normally this is the same as os_group_includes_user(), but if the current user has been
+  added to the group after the current login session started, the current process
+  will not be included in the group, and this function will reflect that.
+  """
   groups = get_os_groups_of_current_process()
   return group_name in groups
 
 def should_run_with_group(group_name: str, require: bool=True) -> bool:
+  """Returns True if the current user is a member of the named OS group,
+     but the current process is not.
+
+  If True, this is an indication that the user was added to the group after the current
+  login session started, and the user needs to log out and log back in for the
+  change to take effect. Alternatively, this indicateds that True should be passed in
+  the "run_with_sudo" argument to sudo_*() functions, to run the command in a
+  simulation of a new login session.
+
+  If require is True, raises an exception if the group does not exist or
+  the user is not a member of the group.
+
+  Args:
+      group_name (str):
+          The name of the OS group to check.
+      require (bool, optional):
+          If True, raises an exception if the group does not exist or
+          the user is not a member of the group. Defaults to True.
+
+  """
   if require:
     if not os_group_includes_user(group_name):
       if os_group_exists(group_name):
