@@ -201,6 +201,7 @@ def install_docker_compose(
   old_version: Optional[str] = None
   if docker_compose_is_installed(dirname):
     old_prog = get_docker_compose_prog(dirname=dirname)
+    assert not old_prog is None
     old_version = get_docker_compose_version(dirname)
     if force:
       print(f"Forcing upgrade/reinstall of docker-compose version {old_version} in {dirname}", file=sys.stderr)

@@ -24,11 +24,11 @@ installer_list: List[Union[str, Tuple[str, str]]] = [
 ]
 
 class CommandHandler(Protocol):
-    def __call__(parser: argparse.ArgumentParser, args: argparse.Namespace) -> int:
+    def __call__(self, parser: argparse.ArgumentParser, args: argparse.Namespace) -> int:
       ...
 
 class InstallerEntry(Protocol):
-    def __call__(argv: Optional[Sequence[str]]=None, prog: Optional[str]=None):
+    def __call__(self, argv: Optional[Sequence[str]]=None, prog: Optional[str]=None):
       ...
 
 class Installer:
