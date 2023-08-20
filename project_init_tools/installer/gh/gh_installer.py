@@ -5,7 +5,7 @@
 # MIT License - See LICENSE file accompanying this package.
 #
 
-"""Installer for standard docker CLI"""
+"""Installer for standard GitHub CLI (gh)"""
 
 from ast import Module
 from typing import TextIO, Tuple, Optional, Dict, Iterator, Sequence, List, cast
