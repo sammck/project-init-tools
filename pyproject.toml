@@ -1,41 +1,11 @@
-[tool.poetry]
-name = "project-init-tools"
-version = "1.2.0"
-description = "Tools to help initialize/setup github projects, install prerequisites, etc."
-authors = [ "Sam McKelvie <dev@mckelvie.org>" ]
-license = "MIT"
-keywords = [ "apt-get", "sudo", "install", "prerequisites", "setup", "initialization" ]
-readme = "README.md"
-homepage = "https://github.com/sammck/project-init-tools"
-repository = "https://github.com/sammck/project-init-tools.git"
+[tool.pdm]
+distribution = true
 
-[tool.poetry.dependencies]
-python = "^3.8"
-colorama = "^0.4.6"
-packaging = "^21.3" # used for version string comparison
-PyYAML = "^6.0.1"
-"ruamel.yaml" = "^0.17.32"
-tomlkit = "^0.10.2"
-boto3 = "^1.28.30"
-pip = "^23.2.1"
-#pip = "^22.3.1"
-
-[tool.poetry.dev-dependencies]
-mypy = "^0.931"
-dunamai = "^1.18.0"
-python-semantic-release = "^7.34.6"
-types-urllib3 = "^1.26.25.14"
-#types-PyYAML = ">=5.4.12 <7.0.0"
-types-PyYAML = "^6.0.1"
-pylint = "^2.17.5"
-boto3-stubs = "^1.28.30"
-
+[tool.pdm.build]
+includes = []
 [build-system]
-requires = ["poetry-core>=1.0.0"]
-build-backend = "poetry.core.masonry.api"
-
-[tool.poetry.scripts]
-project-init-tools = "project_init_tools.__main__:main_script"
+requires = ["pdm-backend"]
+build-backend = "pdm.backend"
 
 [tool.semantic_release]
 version_variable = 'project_init_tools/version.py:__version__'
@@ -85,3 +55,41 @@ ignore=[
 indent-after-paren=4
 indent-string='  '
 max-line-length=200
+
+[project]
+name = "project-init-tools"
+version = "1.2.0"
+description = "Tools to help initialize/setup github projects, install prerequisites, etc."
+authors = [
+    {name = "Sam McKelvie", email = "dev@mckelvie.org"},
+]
+dependencies=[
+  "colorama>=0.3.9",
+  "PyYAML>=5.3.1",
+  "ruamel-yaml>=0.16.13",
+  "tomlkit>=0.13.2",
+  "boto3>=1.35.83",
+  "pip>=24.3.1",
+ ]
+requires-python = ">=3.12"
+readme = "README.md"
+license = {text = "MIT"}
+keywords = ["apt-get", "sudo", "install", "prerequisites", "setup", "initialization"]
+
+[project.urls]
+homepage = "https://github.com/sammck/project-init-tools"
+repository = "https://github.com/sammck/project-init-tools.git"
+
+[project.scripts]
+project-init-tools = "project_init_tools.__main__:main_script"
+
+[dependency-groups]
+dev = [
+    "mypy>=1.13.0",
+    "dunamai>=1.23.0",
+    "python-semantic-release>=9.15.2",
+    "types-urllib3>=1.26.25.14",
+    "types-PyYAML>=6.0.12.20240917",
+    "pylint>=3.3.2",
+    "boto3-stubs>=1.35.83",
+]

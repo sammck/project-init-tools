@@ -24,12 +24,12 @@ installer_list: List[Union[str, Tuple[str, str]]] = [
 ]
 
 class CommandHandler(Protocol):
-    def __call__(self, parser: argparse.ArgumentParser, args: argparse.Namespace) -> int:
-      ...
+  def __call__(self, parser: argparse.ArgumentParser, args: argparse.Namespace) -> int:
+    ...
 
 class InstallerEntry(Protocol):
-    def __call__(self, argv: Optional[Sequence[str]]=None, prog: Optional[str]=None):
-      ...
+  def __call__(self, argv: Optional[Sequence[str]]=None, prog: Optional[str]=None):
+    ...
 
 class Installer:
   name: str
@@ -40,8 +40,8 @@ class Installer:
 
   def __init__(self, initializer: Union[str, Tuple[str, str]]):
     if isinstance(initializer, str):
-       self.name = initializer
-       short_module_name = initializer.replace('-', '_')
+      self.name = initializer
+      short_module_name = initializer.replace('-', '_')
     else:
       assert isinstance(initializer, tuple)
       self.name, short_module_name = initializer
@@ -50,9 +50,9 @@ class Installer:
     self.func = getattr(imp_mod, self.func_name)
 
 installers: Dict[str, Installer] = {}
-for initializer in installer_list:
-  installer = Installer(initializer)
-  installers[installer.name] = installer
+for _initializer in installer_list:
+  _installer = Installer(_initializer)
+  installers[_installer.name] = _installer
 
 def cmd_bare(parser: argparse.ArgumentParser, args: argparse.Namespace) -> int:
   parser.print_help()
@@ -69,8 +69,6 @@ def cmd_install(parser: argparse.ArgumentParser, args: argparse.Namespace) -> in
   return 0
 
 def main(argv: Optional[Sequence[str]]=None, prog: Optional[str]=None) -> int:
-  import argparse
-
   parser = argparse.ArgumentParser(prog=prog, description='Project initialization tool.')
   parser.set_defaults(func=cmd_bare)
 
@@ -88,10 +86,8 @@ def main(argv: Optional[Sequence[str]]=None, prog: Optional[str]=None) -> int:
   return func(parser, args)
 
 def main_script():
-  """Entrypoint for installed commandline script"""
-  rc = main(prog=f"project-init-tools")
+  rc = main(prog="project-init-tools")
   sys.exit(rc)
 
-if __name__ == "__main__":
-  rc = main(prog=f"python3 -m {__package__}")
-  sys.exit(rc)
+if __name__ == '__main__':
+  main_script()

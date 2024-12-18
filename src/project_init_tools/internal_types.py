@@ -12,6 +12,8 @@ from typing import (
     Any,
     List,
     TYPE_CHECKING,
+    Self,
+    NamedTuple
   )
 
 JsonableTypes = ( str, int, float, bool, dict, list )

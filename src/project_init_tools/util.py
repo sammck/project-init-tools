@@ -26,7 +26,7 @@ from typing import (
   )
 
 from .exceptions import ProjectInitError, CalledProcessErrorWithStderrMessage
-from .internal_types import Jsonable, JsonableDict
+from .internal_types import Jsonable, JsonableDict, Self, NamedTuple
 
 import json
 import hashlib
@@ -42,7 +42,6 @@ import boto3
 from boto3.session import Session as BotoAwsSession
 from botocore.session import Session as BotocoreSession
 import sys
-from packaging import version
 import platform
 import grp
 import filecmp
@@ -51,7 +50,6 @@ import shutil
 import shlex
 from collections import defaultdict
 from functools import lru_cache, _make_key
-
 import yaml
 
 try:
@@ -705,6 +703,149 @@ def get_aws_region(s: Optional[BotoAwsSession]=None, default: Optional[str]=None
 
   return result
 
+
+epoch_re = re.compile(r'^(\d+):')
+version_numeric_component_re = re.compile(r'^(\d+)(\..+)?$')
+
+class SysPackageVersion(NamedTuple):
+  """Represents a package version as used by dpkg"""
+
+  epoch: int
+  major: int
+  minor: int | None
+  patch: int | str | None
+  annotation: str | None
+
+  @classmethod
+  def parse(cls, version_str: str) -> 'SysPackageVersion':
+    """Parses a dpkg-style package version string
+
+    Args:
+        version_str (str): A dpkg-style package version string
+
+        Example: "5:27.4.1-1~ubuntu.24.04~noble"
+
+    Returns:
+        SysPackageVersion: A SysPackageVersion object representing the version
+    """
+    orig = version_str
+    epoch: int = 0
+    major: int = 0
+    minor: int | None = None
+    patch: int | str | None = None
+    annotation: str | None = None
+
+    try:
+      if '~' in version_str:
+        annotation, version_str = version_str.split('~', 1)
+
+      m = epoch_re.match(version_str)
+      if m:
+        epoch = int(m.group(1))
+        version_str = version_str[m.end():]
+
+      m = version_numeric_component_re.match(version_str)
+      if m is None:
+        raise ValueError(f"A major version number is required")
+      major = int(m.group(1))
+      version_str = version_str[m.end():]
+
+      m = version_numeric_component_re.match(version_str)
+      if m:
+        minor = int(m.group(1))
+        version_str = version_str[m.end():]
+
+        if version_str != '':
+          m = version_numeric_component_re.match(version_str)
+          if m:
+            patch = int(m.group(1))
+          else:
+            patch = version_str
+
+      return cls(epoch, major, minor, patch, annotation)
+    except Exception as e:
+      raise ValueError(f"Invalid SysPackageVersion string: {orig}") from e
+
+  def __str__(self) -> str:
+    result = "" if self.epoch == 0 else f"{self.epoch}:"
+    result += f"{self.major}"
+    if not self.minor is None or not self.patch is None:
+      minor = 0 if self.minor is None else self.minor
+      result += f".{minor}"
+      if not self.patch is None:
+        result += f".{self.patch}"
+    if not self.annotation is None:
+      result += f"~{self.annotation}"
+    return result
+
+  def __repr__(self) -> str:
+    return f"SysPackageVersion({self})"
+
+  def compare(self, other: Self) -> int:
+    """Returns -1 if this version is less than other, 0 if equal, 1 if greater"""
+    if not isinstance(other, SysPackageVersion):
+      raise ValueError(f"Attempt to compare SysPackageVersion to another type")
+    if self.epoch < other.epoch:
+      return -1
+    if self.epoch > other.epoch:
+      return 1
+    if self.major < other.major:
+      return -1
+    if self.major > other.major:
+      return 1
+    if self.minor is None:
+      if other.minor is not None:
+        return -1
+    elif other.minor is None:
+      return 1
+    elif self.minor < other.minor:
+      return -1
+    elif self.minor > other.minor:
+      return 1
+    if self.patch is None:
+      if other.patch is not None:
+        return -1
+    elif other.patch is None:
+      return 1
+    if not isinstance(self.patch, int) or not isinstance(other.patch, int):
+      patch: int | str = str(self.patch)
+      other_patch: int | str = str(other.patch)
+    else:
+      patch = self.patch
+      other_patch = other.patch
+    if patch < other_patch:
+      return -1
+    elif patch > other_patch:
+      return 1
+    if self.annotation is None:
+      if other.annotation is not None:
+        return -1
+    elif other.annotation is None:
+      return 1
+    if self.annotation < other.annotation:
+      return -1
+    elif self.annotation > other.annotation:
+      return 1
+    return 0
+  
+  def __eq__(self, other: Any) -> bool:
+    return isinstance(other, SysPackageVersion) and self.compare(other) == 0
+  
+  def __ne__(self, other: Any) -> bool:
+    return not self.__eq__(other)
+  
+  def __gt__(self, other: Self) -> bool:
+    return self.compare(other) > 0
+
+  def __lt__(self, other: Self) -> bool:
+    return self.compare(other) < 0
+  
+  def __ge__(self, other: Self) -> bool:
+    return self.compare(other) >= 0
+
+  def __le__(self, other: Self) -> bool:
+    return self.compare(other) <= 0
+
 def check_version_ge(version1: str, version2: str) -> bool:
   """returns True iff version1 is greater than or equal to version2
 
@@ -715,7 +856,7 @@ def check_version_ge(version1: str, version2: str) -> bool:
   Returns:
       bool: True iff version1 is greater than or equal to version2
   """
-  return version.parse(version1) >= version.parse(version2)
+  return SysPackageVersion.parse(version1) >= SysPackageVersion.parse(version2)
 
 def searchpath_split(searchpath: Optional[str]=None) -> List[str]:
   """Splits a ':'-delimited search path string into a list of directories
