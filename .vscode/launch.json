@@ -5,20 +5,19 @@
     "version": "0.2.0",
     "configurations": [
         {
-            "name": "project-init --test",
-            "type": "python",
+            "name": "project-init-tools install docker",
+            "type": "debugpy",
             "request": "launch",
-            "module": "project_init_tools",
-            "args": [ "--tb", "--test" ],
+            "module": "project_init_tools.__main__",
+            "args": [ "install", "docker" ],
             "justMyCode": false
         },
         {
-            "name": "project-init init-env (cctest)",
-            "type": "python",
+            "name": "project-init-tools install docker --force",
+            "type": "debugpy",
             "request": "launch",
-            "module": "project_init_tools",
-            "cwd": "${workspaceFolder}/../aws-dev-box-template",
-            "args": [ "--tb", "init-env" ],
+            "module": "project_init_tools.__main__",
+            "args": [ "install", "docker", "--force" ],
             "justMyCode": false
         }
     ]

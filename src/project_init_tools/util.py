@@ -746,7 +746,7 @@ class SysPackageVersion(NamedTuple):
 
       m = version_numeric_component_re.match(version_str)
       if m is None:
-        raise ValueError(f"A major version number is required")
+        raise ValueError("A major version number is required")
       major = int(m.group(1))
       version_str = version_str[m.end():]
 
@@ -784,7 +784,7 @@ class SysPackageVersion(NamedTuple):
   def compare(self, other: Self) -> int:
     """Returns -1 if this version is less than other, 0 if equal, 1 if greater"""
     if not isinstance(other, SysPackageVersion):
-      raise ValueError(f"Attempt to compare SysPackageVersion to another type")
+      raise ValueError("Attempt to compare SysPackageVersion to another type")
     if self.epoch < other.epoch:
       return -1
     if self.epoch > other.epoch:
@@ -827,19 +827,19 @@ class SysPackageVersion(NamedTuple):
     elif self.annotation > other.annotation:
       return 1
     return 0
-  
+
   def __eq__(self, other: Any) -> bool:
     return isinstance(other, SysPackageVersion) and self.compare(other) == 0
-  
+
   def __ne__(self, other: Any) -> bool:
     return not self.__eq__(other)
-  
+
   def __gt__(self, other: Self) -> bool:
     return self.compare(other) > 0
 
   def __lt__(self, other: Self) -> bool:
     return self.compare(other) < 0
-  
+
   def __ge__(self, other: Self) -> bool:
     return self.compare(other) >= 0
 

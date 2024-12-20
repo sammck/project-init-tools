@@ -56,9 +56,9 @@ files = [
 
 [[package]]
 name = "boto3-stubs"
-version = "1.35.83"
+version = "1.35.84"
 requires_python = ">=3.8"
-summary = "Type annotations for boto3 1.35.83 generated with mypy-boto3-builder 8.6.4"
+summary = "Type annotations for boto3 1.35.84 generated with mypy-boto3-builder 8.6.4"
 groups = ["dev"]
 dependencies = [
     "botocore-stubs",
@@ -66,8 +66,8 @@ dependencies = [
     "typing-extensions>=4.1.0; python_version < \"3.12\"",
 ]
 files = [
-    {file = "boto3_stubs-1.35.83-py3-none-any.whl", hash = "sha256:34f2b32e4df5a5fc3551559803c679ffd8467b2ea5573f2946cc518e1ec7e4e9"},
-    {file = "boto3_stubs-1.35.83.tar.gz", hash = "sha256:30b005e5188b5a5e193e90a8ad7b8637015c2d9d4508719bb9cb96d2ee24414a"},
+    {file = "boto3_stubs-1.35.84-py3-none-any.whl", hash = "sha256:5091d008906993b3c38dae78abdce323584a6144229a89950012441adaa68f5c"},
+    {file = "boto3_stubs-1.35.84.tar.gz", hash = "sha256:299d1c24ac5d1a545be6b36717b2d95d783685c4a81bbc7a5769a55271e610d6"},
 ]
 
 [[package]]

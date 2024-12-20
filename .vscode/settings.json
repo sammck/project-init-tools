@@ -5,10 +5,12 @@
   "python.testing.pytestEnabled": true,
   "[python]": {
         "editor.insertSpaces": true,
-        "editor.tabSize": 2  
-      },   
+        "editor.tabSize": 2
+      },
     "files.exclude": {
       "/trash": true
     },
-    "esbonio.server.enabled": true
+    "esbonio.server.enabled": true,
+    "python.terminal.activateEnvironment": true,
+    "python.terminal.activateEnvInCurrentTerminal": true,
 }

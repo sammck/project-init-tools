@@ -69,6 +69,24 @@ def escaped_hex(hexv: str) -> str:
   return result
 
 class BinFmtEntry:
+  """
+
+  A binfmt metadata entry as defined in a file in /var/lib/binfmts
+
+  Each file contains lines similar to:
+    qemu-x86_64                                                                         # [0]  package_name
+    magic                                                                               # [1]
+    0                                                                                   # [2]
+    \x7fELF\x02\x01\x01\x00\x00\x00\x00\x00\x00\x00\x00\x00\x02\x00\x3e\x00             # [3]
+    \xff\xff\xff\xff\xff\xfe\xfe\x00\xff\xff\xff\xff\xff\xff\xff\xff\xfe\xff\xff\xff    # [4]
+    /usr/bin/qemu-x86_64-static                                                         # [5]
+                                                                                        # [6]
+    no                                                                                  # [7]
+    no                                                                                  # [8]
+    no                                                                                  # [9]    Fixed binary if yes
+  """
+
+
   _pathname: str
   _text_data: str
   _lines: List[str]
@@ -98,7 +116,7 @@ class BinFmtEntry:
 
   def is_fixed_binary(self) -> bool:
     fline = None if len(self._lines) < 10 else self._lines[9].rstrip()
-    if fline is None or not fline in ("", "yes"):
+    if fline is None or not fline in ("", "no", "yes"):
       raise ProjectInitError(f"Unable to read binfmts fixed binary status from {self._pathname}")
 
     return fline == 'yes'
@@ -153,7 +171,11 @@ def fix_binfmt_qemu_binary(target_arch: str):
     )
 
 def fix_binfmt_qemu_binary_if_needed(target_arch: str):
-  binfmt = get_binfmt(target_arch)
+  try:
+    binfmt = get_binfmt(target_arch)
+  except FileNotFoundError:
+    print(f"Warning: Target architecture {target_arch!r} has no binfmt entry in /var/lib/binfmts; not fixing")
+    return
   if not binfmt.is_fixed_binary():
     fix_binfmt_qemu_binary(target_arch)
 
@@ -164,10 +186,13 @@ def get_all_target_arches() -> List[str]:
     assert filename.startswith('qemu-')
     target_arch = filename[5:]
     result.append(target_arch)
+  result.sort()
   return result
 
 def fix_all_binfmt_qemu_binaries_if_needed():
-  for target_arch in get_all_target_arches():
+  target_arches = get_all_target_arches()
+  print(f"binfmt architectures detected: {target_arches!r}", file=sys.stderr)
+  for target_arch in target_arches:
     fix_binfmt_qemu_binary_if_needed(target_arch)
 
 def docker_is_installed() -> bool:
