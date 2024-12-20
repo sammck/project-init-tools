@@ -58,7 +58,7 @@ max-line-length=200
 
 [project]
 name = "project-init-tools"
-version = "1.2.0"
+version = "2.0.0"
 description = "Tools to help initialize/setup github projects, install prerequisites, etc."
 authors = [
     {name = "Sam McKelvie", email = "dev@mckelvie.org"},
